@@ -11,7 +11,7 @@ export default function Rewards() {
       {/* Header */}
       <div className="space-y-4">
         <Link 
-          to="/" 
+          to="/dashboard" 
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

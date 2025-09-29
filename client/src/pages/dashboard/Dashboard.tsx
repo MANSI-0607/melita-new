@@ -1,14 +1,39 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag, Gift, MapPin, TrendingUp } from "lucide-react";
 
+interface User {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export default function Dashboard() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = () => {
+      try {
+        const userData = localStorage.getItem('melita_user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-foreground">
-          Welcome, Mansi Gupta 🌸
+          Welcome, {user?.name || 'Guest'} 🌸
         </h1>
         <p className="text-muted-foreground">
           Your luxury skincare journey continues here

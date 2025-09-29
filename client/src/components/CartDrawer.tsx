@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,11 +52,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
   // ---- Pricing logic ----
   const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = state.items.length > 0 ? 99 : 0;
-  const discount = subtotal > 2000 ? 200 : 0;
+  const shipping = state.items.length > 0 ? 0 : 0;
+  const discount = subtotal > 2000 ? 0 : 0;
   const total = subtotal + shipping - discount;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -64,8 +65,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-[9998]"
-            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-[9998] pointer-events-none"
           />
 
           {/* Drawer */}
@@ -74,11 +74,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed right-0 top-0 h-screen w-full md:w-1/3 bg-white shadow-xl z-[9999] flex flex-col"
+            className="fixed right-0 top-0 h-screen w-full md:w-1/3 bg-white shadow-xl z-[9999] flex flex-col border-l border-gray-200"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center gap-2 text-[#1e4323] font-semibold">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center gap-2 text-gray-800 font-semibold">
                 <ShoppingBag className="w-5 h-5" />
                 <h2 className="text-lg">Your Cart</h2>
                 {state.totalItems > 0 && (
@@ -93,7 +93,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
               {state.items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
@@ -105,7 +105,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : (
                 state.items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div key={item.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                     {/* Product Image */}
                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0">
                       <img
@@ -120,10 +120,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                     {/* Product Details */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm text-gray-900 truncate">
+                      <h3 className="font-medium semibold text-medium text-gray-900 truncate">
                         {item.name}
                       </h3>
-                      <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
+                      <p className="text-medium text-gray-500">{formatPrice(item.price)}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <Button
                           variant="outline"
@@ -133,7 +133,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                        <span className="text-medium font-medium w-8 text-center">{item.quantity}</span>
                         <Button
                           variant="outline"
                           size="sm"
@@ -161,39 +161,39 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
             {/* Footer */}
             {state.items.length > 0 && (
-              <div className="border-t p-6 space-y-4">
+              <div className="border-t border-gray-200 p-6 space-y-4 sticky bottom-0 bg-white z-10">
                 {/* Subtotal */}
-                <div className="flex justify-between text-[#1e4323]">
+                <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 {/* Shipping */}
-                <div className="flex justify-between text-[#1e4323]">
+                {/* <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span>{formatPrice(shipping)}</span>
-                </div>
+                </div> */}
                 {/* Discount */}
-                {discount > 0 && (
+                {/* {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
                     <span>-{formatPrice(discount)}</span>
                   </div>
-                )}
+                )} */}
                 {/* Total */}
-                <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t border-gray-200">
+                <div className="flex justify-between font-bold text-lg pt-2 mt-2 border-t border-gray-200 text-gray-800">
                   <span>Total</span>
                   <span>{formatPrice(total)}</span>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  <Button
+                  {/* <Button
                     onClick={handleClearCart}
                     variant="outline"
                     className="w-full text-red-600 border-red-200 hover:bg-red-50"
                   >
                     Clear Cart
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={() =>
                      navigate('/checkout')
@@ -214,7 +214,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

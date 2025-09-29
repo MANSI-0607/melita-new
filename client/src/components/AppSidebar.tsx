@@ -1,15 +1,22 @@
-import { 
-    LayoutDashboard, 
-    ShoppingBag, 
-    CreditCard, 
-    Gift, 
-    MapPin, 
+import { useState, useEffect } from "react";
+import {
+    LayoutDashboard,
+    ShoppingBag,
+    CreditCard,
+    Gift,
+    MapPin,
     User,
     X,
     ArrowLeft
   } from "lucide-react";
   import { NavLink, useNavigate} from "react-router-dom";
   import { Button } from "@/components/ui/button";
+
+  interface UserData {
+    id: string;
+    name: string;
+    phone: string;
+  }
   
   const sidebarItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -26,17 +33,34 @@ import {
   }
   
   export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
+    const [user, setUser] = useState<UserData | null>(null);
+
+    useEffect(() => {
+      const fetchUserData = () => {
+        try {
+          const userData = localStorage.getItem('melita_user');
+          if (userData) {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      };
+
+      fetchUserData();
+    }, []);
     return (
       <>
         {/* Mobile overlay */}
         {isOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
             onClick={onToggle}
           />
         )}
-        
+
         {/* Sidebar */}
         <aside
           className={`
@@ -50,15 +74,15 @@ import {
           <div className="flex items-center justify-between p-6 border-b border-border">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">M</span>
+                <span className="text-primary-foreground font-bold text-sm">{user?.name[0].toUpperCase()}</span>
               </div>
               <div>
-                <h2 className="font-semibold text-foreground">Melita</h2>
-                <p className="text-xs text-muted-foreground">Skincare</p>
+                <h2 className="font-semibold text-foreground">{user?.name || 'Melita'}</h2>
+                <p className="text-xs text-muted-foreground">Welcome back!</p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={onToggle}
               className="lg:hidden"
