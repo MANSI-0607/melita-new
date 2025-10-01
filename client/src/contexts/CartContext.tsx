@@ -187,7 +187,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     console.log('CartContext - addToCart called with:', product);
     dispatch({ type: 'ADD_TO_CART', payload: product });
     dispatch({ type: 'OPEN_CART' }); // Open cart when item is added
-    console.log('CartContext - cart should be open now');
+   
   };
 
   const removeFromCart = (id: number) => {

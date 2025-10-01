@@ -1,6 +1,6 @@
 import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
-import SimpleProductReview from '@/components/SimpleProductReview';
+import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
 import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
@@ -99,11 +99,11 @@ const BarrierCareStarterDuo = () => {
       </section>
 
       {/* What's Inside? */}
-      <section className="max-w-7xl mx-auto mt-12 px-4">
+      {/* <section className="max-w-7xl mx-auto mt-12 px-4">
         <h2 className="text-center text-3xl font-bold text-green-800 mb-12 uppercase tracking-wide">What's Inside?</h2>
         <div className="bg-orange-100 rounded-3xl p-8 shadow-lg">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            {/* Left: Key Ingredients */}
+  
             <div className="lg:col-span-2 space-y-6">
               <h3 className="text-green-800 font-bold uppercase text-lg mb-6">Key Ingredients</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -123,7 +123,7 @@ const BarrierCareStarterDuo = () => {
               </div>
             </div>
 
-            {/* Right: Ingredient Detail */}
+           
             <div className="lg:col-span-3">
               <div className="bg-white rounded-2xl p-8 shadow-sm min-h-[320px] transition-all duration-300">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">{currentIngredient.title}</h3>
@@ -149,7 +149,7 @@ const BarrierCareStarterDuo = () => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* How To Use - Desktop */}
       <section className="hidden md:block w-full mt-12 px-4">
@@ -163,8 +163,8 @@ const BarrierCareStarterDuo = () => {
         <div className="relative w-full min-h-[540px] max-h-[600px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howtousemob})` }} />
       </section>
 
-      <ProductFAQ />
-      <SimpleProductReview slug="barrier-care-starter-duo" />
+      <ProductFAQ slug="barrier-care-starter-duo" />
+      <ProductReview slug="barrier-care-starter-duo" />
       <Footer />
     </>
   );

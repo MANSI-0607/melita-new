@@ -84,9 +84,17 @@ const userSchema = new mongoose.Schema(
     },
     // Last activity tracking
     lastLoginAt: { type: Date },
-    lastOrderAt: { type: Date }
+    lastOrderAt: { type: Date },
+    // Addresses and orders
+    addresses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Address' }],
+    defaultAddress: { type: mongoose.Schema.Types.ObjectId, ref: 'Address', default: null },
+    orderHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }]
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 // Indexes
@@ -94,10 +102,17 @@ userSchema.index({ phone: 1 });
 userSchema.index({ email: 1 });
 userSchema.index({ referralCode: 1 });
 userSchema.index({ loyaltyTier: 1 });
+userSchema.index({ addresses: 1 });
+userSchema.index({ orderHistory: 1 });
 
 // Virtual for display name
 userSchema.virtual('displayName').get(function() {
   return this.name || `User ${this.phone.slice(-4)}`;
+});
+
+// Virtual alias for points (mirror of rewardPoints)
+userSchema.virtual('points').get(function() {
+  return this.rewardPoints || 0;
 });
 
 // Virtual for loyalty tier benefits

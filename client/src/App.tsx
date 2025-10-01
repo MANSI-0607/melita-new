@@ -31,8 +31,11 @@ import DashboardLayout from "./components/DashboardLayout";
 import Profile from "./pages/dashboard/Profile";
 import Address from "./pages/dashboard/Address";
 import Orders from "./pages/dashboard/Orders";
+import OrderDetails from "./pages/dashboard/OrderDetails";
 import Rewards from "./pages/dashboard/Rewards";
 import Transactions from "./pages/dashboard/Transactions";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -66,20 +69,25 @@ const App = () => (
           <Route path="/terms-conditions" element={<TermsAndConditions />} />
           <Route path="/refund-returns" element={<RefundAndReturns />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/checkout" element={<Checkout />} />
+
+          {/* admin routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* dashboard with nested routes */}
-<Route path="/dashboard" element={<DashboardLayout />}>
-  <Route index element={<Dashboard />} />
-  <Route path="profile" element={<Profile />} />
-  <Route path="address" element={<Address />} />
-  <Route path="orders" element={<Orders />} />
-  <Route path="rewards" element={<Rewards />} />
-  <Route path="transactions" element={<Transactions/>} />
-</Route>
+  <Route path="/dashboard" element={<DashboardLayout />}>
+    <Route index element={<Dashboard />} />
+    <Route path="profile" element={<Profile />} />
+    <Route path="address" element={<Address />} />
+    <Route path="orders" element={<Orders />} />
+    <Route path="orders/:orderId" element={<OrderDetails />} />
+    <Route path="rewards" element={<Rewards />} />
+    <Route path="transactions" element={<Transactions/>} />
+  </Route>
 
           {/* fallback */}
           <Route path="*" element={<NotFound />} />

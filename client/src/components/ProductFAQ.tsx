@@ -1,49 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-// Demo data for the FAQ component (same as before)
-const demoFaqs = [
-  {
-    category: "Ingredients & Claims",
-    questions: [
-      {
-        question: "Can I use this with active ingredients like Vitamin C, Retinol, or AHAs/BHAs?",
-        answer: "Yes! It's formulated to layer seamlessly with actives and helps reduce irritation from potent ingredients."
-      },
-      {
-        question: "Does it contain any harsh chemicals?",
-        answer: "No. It's free from soap, sulphates, parabens, and other irritants."
-      }
-    ]
-  },
-  {
-    category: "Packaging & Storage",
-    questions: [
-      {
-        question: "Does this essence contain fragrance?",
-        answer: "This essence is formulated without synthetic fragrances, but may have a subtle natural scent from its active ingredients."
-      }
-    ]
-  },
-  {
-    category: "Skin Compatibility",
-    questions: [
-      {
-        question: "What skin types is this product suitable for?",
-        answer: "This product is suitable for all skin types, including sensitive, oily, and dry skin. Its gentle formula ensures it won't cause breakouts or irritation."
-      }
-    ]
-  },
-  {
-    category: "Usage & Application",
-    questions: [
-      {
-        question: "How and when should I apply this product?",
-        answer: "For best results, apply 2-3 drops to a clean face, pat gently until absorbed, and follow with your favorite moisturizer. Use twice daily, in the morning and at night."
-      }
-    ]
-  }
-];
+
 
 // Reusable Accordion Item component (same as before)
 const AccordionItem = ({ question, answer, isOpen, onToggle }) => {
@@ -69,9 +27,63 @@ const AccordionItem = ({ question, answer, isOpen, onToggle }) => {
   );
 };
 
-const FAQComponent = ({ faqData = demoFaqs }) => {
+type FaqItem = { category: string; questions: { question: string; answer: string }[] };
+
+interface FAQComponentProps {
+  slug?: string;
+
+}
+
+const FAQComponent: React.FC<FAQComponentProps> = ({ slug }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [openQuestionIndex, setOpenQuestionIndex] = useState(0);
+  const [fetchedFaqs, setFetchedFaqs] = useState<FaqItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch FAQs by slug when provided
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFaqs = async () => {
+      if (!slug) {
+        setFetchedFaqs(null);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`http://localhost:5000/products/slug/${slug}/faq`);
+        if (!res.ok) {
+          throw new Error(`Failed to load FAQ (${res.status})`);
+        }
+        const data = await res.json();
+        const apiFaq = Array.isArray(data?.data) ? data.data : [];
+        // Map backend { title, questions } -> UI { category, questions }
+        const mapped: FaqItem[] = apiFaq.map((grp: any) => ({
+          category: grp.title ?? 'FAQ',
+          questions: Array.isArray(grp.questions) ? grp.questions : []
+        }));
+        if (isMounted) {
+          setFetchedFaqs(mapped);
+          setActiveTab(0);
+          setOpenQuestionIndex(0);
+        }
+      } catch (e: any) {
+        if (isMounted) setError(e?.message || 'Failed to load FAQ');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchFaqs();
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const dataToUse: FaqItem[] = fetchedFaqs ?? [];
+  const hasData = dataToUse.length > 0;
 
   const handleCategoryClick = (index) => {
     setActiveTab(index);
@@ -82,18 +94,24 @@ const FAQComponent = ({ faqData = demoFaqs }) => {
     setOpenQuestionIndex(openQuestionIndex === index ? -1 : index);
   };
 
-  const currentFaqCategory = faqData[activeTab];
+  const currentFaqCategory = hasData ? dataToUse[activeTab] : undefined;
 
   return (
     <section className="bg-white rounded-2xl p-4 md:p-8 max-w-7xl mx-auto my-8">
       <h2 className="text-center text-2xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] mb-8">
         FAQ
       </h2>
+      {loading && (
+        <div className="text-center text-sm text-gray-500 mb-4">Loading FAQs...</div>
+      )}
+      {error && (
+        <div className="text-center text-sm text-red-600 mb-4">{error}</div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Sidebar */}
         <div className="md:col-span-1">
           <ul className="space-y-2">
-            {faqData.map((item, index) => (
+            {hasData && dataToUse.map((item, index) => (
               <li key={index}>
                 <button
                   onClick={() => handleCategoryClick(index)}
@@ -123,6 +141,9 @@ const FAQComponent = ({ faqData = demoFaqs }) => {
                 />
               ))}
             </div>
+          )}
+          {!loading && !error && !hasData && (
+            <div className="text-sm text-gray-500">No FAQs available for this product.</div>
           )}
         </div>
       </div>

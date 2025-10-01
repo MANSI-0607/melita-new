@@ -23,8 +23,8 @@ const Login = () => {
     if (token) navigate('/');
   }, [navigate]);
 
-  // Normalize phone number
-  const normalizePhone = (num: string) => num.replace(/\D/g, '');
+  // Normalize phone number (remove spaces and non-digits)
+  const normalizePhone = (num: string) => num.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
 
   const handleSendOtp = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,8 +32,8 @@ const Login = () => {
     setError('');
 
     const normalizedPhone = normalizePhone(phone);
-    if (normalizedPhone.length < 10 || normalizedPhone.length > 13) {
-      setError('Invalid phone number');
+    if (normalizedPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
       setLoading(false);
       return;
     }
@@ -110,7 +110,7 @@ const Login = () => {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 9876543210"
+                  placeholder="9876543210"
                   required
                 />
               </div>
@@ -138,13 +138,13 @@ const Login = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Verifying...' : 'Verify OTP'}
               </Button>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => setStep('enter')}
                 className="text-sm text-center w-full text-gray-600 hover:text-gray-800"
               >
                 Change phone number
-              </button>
+              </button> */}
             </form>
           )}
 

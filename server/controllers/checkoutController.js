@@ -1,4 +1,6 @@
 import asyncHandler from 'express-async-handler';
+import crypto from 'crypto';
+import Razorpay from 'razorpay';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
@@ -8,16 +10,24 @@ import Coupon from '../models/Coupon.js';
 
 // Get user addresses
 export const getUserAddresses = asyncHandler(async (req, res) => {
-  const addresses = await Address.find({ userId: req.user.id }).sort({ createdAt: -1 });
+  const docs = await Address.find({ user: req.user._id, isActive: true }).sort({ isDefault: -1, updatedAt: -1 });
+  const addresses = docs.map((a) => {
+    const obj = a.toObject();
+    return { id: String(a._id), ...obj };
+  });
   res.json({ success: true, addresses });
 });
 
 // Add new address
 export const addAddress = asyncHandler(async (req, res) => {
-  const { first_name, last_name, email, phone, addressline1, addressline2, state, pincode } = req.body;
+  const { first_name, last_name, email, phone, addressline1, addressline2, state, pincode, isDefault } = req.body;
+
+  if (!Address.validatePincode(pincode)) {
+    return res.status(400).json({ success: false, message: 'Invalid pincode format' });
+  }
 
   const address = new Address({
-    userId: req.user.id,
+    user: req.user._id,
     first_name,
     last_name,
     email,
@@ -25,11 +35,14 @@ export const addAddress = asyncHandler(async (req, res) => {
     addressline1,
     addressline2,
     state,
-    pincode
+    pincode,
+    isDefault: !!isDefault,
+    isActive: true,
   });
 
   const savedAddress = await address.save();
-  res.status(201).json({ success: true, address: savedAddress });
+  const obj = savedAddress.toObject();
+  res.status(201).json({ success: true, address: { id: String(savedAddress._id), ...obj } });
 });
 
 // Get available coupons
@@ -78,183 +91,303 @@ export const applyCoupon = asyncHandler(async (req, res) => {
 
 // Create order (COD)
 export const createCodOrder = asyncHandler(async (req, res) => {
-  const { items, customer, shippingMethod, coupon, coinsUsed, totals } = req.body;
+  try {
+    const { items, shippingMethod, coupon, coinsUsed = 0, shippingAddressId } = req.body;
 
-  // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = shippingMethod.charge || 0;
-  const couponDiscount = coupon ? (coupon.type === 'percentage' ? 
-    (subtotal * coupon.value / 100) : coupon.value) : 0;
-  const coinsDiscount = coinsUsed || 0;
-  const totalDiscount = couponDiscount + coinsDiscount;
-  const grandTotal = Math.max(0, subtotal + shippingCost - totalDiscount);
-  const cashbackEarned = Math.floor(Math.max(0, subtotal - couponDiscount) * 0.20);
+    // Validate request
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Order must contain at least one item' });
+    }
 
-  // Create order
+    if (!shippingAddressId) {
+      return res.status(400).json({ success: false, message: 'Shipping address is required' });
+    }
+
+    // Load shipping address from Address collection
+    const addressDoc = await Address.findOne({ _id: shippingAddressId, user: req.user._id, isActive: true });
+    if (!addressDoc) {
+      return res.status(400).json({ success: false, message: 'Invalid shipping address' });
+    }
+
+  // Find products by slug from cart items
+  const slugs = items.map((i) => i.slug).filter(Boolean);
+  const products = await Product.find({ slug: { $in: slugs }, isActive: true });
+  if (products.length !== slugs.length) {
+    return res.status(400).json({ success: false, message: 'Some products are not available' });
+  }
+
+  // Build order items as per schema
+  let subtotal = 0;
+  const orderItems = items.map((cartItem) => {
+    const product = products.find((p) => p.slug === cartItem.slug);
+    const qty = cartItem.quantity || 1;
+    const price = product?.price ?? cartItem.price ?? 0;
+    const originalPrice = product?.originalPrice ?? product?.price ?? cartItem.price ?? 0;
+    const itemSubtotal = price * qty;
+    subtotal += itemSubtotal;
+    return {
+      product: product._id,
+      name: product.name,
+      slug: product.slug,
+      image: product.images?.primary || cartItem.image || '',
+      price,
+      originalPrice,
+      quantity: qty,
+      subtotal: itemSubtotal,
+    };
+  });
+
+  // Shipping and taxes
+  const shippingCost = Math.max(0, shippingMethod?.charge || 0);
+  const tax = 0; // include GST here if needed
+
+  // Discounts
+  const couponDiscount = coupon ? (coupon.type === 'percentage' ? Math.round((subtotal * coupon.value) / 100) : coupon.value) : 0;
+  const rewardPointsUsed = Math.max(0, coinsUsed || 0);
+  const discount = Math.max(0, couponDiscount);
+  const total = Math.max(0, subtotal + shippingCost + tax - discount - rewardPointsUsed);
+
+  // Map shipping method id to enum
+  const shippingMethodMap = {
+    'free-standard': 'standard',
+    'standard': 'standard',
+    'express': 'express',
+  };
+  const shippingMethodEnum = shippingMethodMap[shippingMethod?.id] || 'standard';
+
+  // Generate order number manually as fallback
+  const orderCount = await Order.countDocuments();
+  const timestamp = Date.now().toString().slice(-6);
+  const orderNumber = `MLT${timestamp}${(orderCount + 1).toString().padStart(4, '0')}`;
+
   const order = new Order({
-    userId: req.user.id,
-    items: items.map(item => ({
-      productId: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image
-    })),
-    customer: {
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      email: customer.email,
-      phone: customer.phone,
-      address: {
-        line1: customer.addressline1,
-        line2: customer.addressline2,
-        state: customer.state,
-        pincode: customer.pincode
-      }
-    },
-    shipping: {
-      method: shippingMethod.label,
-      cost: shippingCost
-    },
-    payment: {
-      method: 'COD',
-      status: 'pending'
-    },
+    orderNumber,
+    user: req.user._id,
+    items: orderItems,
+    shippingAddress: addressDoc.formatForShipping(),
     pricing: {
       subtotal,
-      shippingCost,
-      couponDiscount,
-      coinsDiscount,
-      totalDiscount,
-      grandTotal,
-      cashbackEarned
+      discount,
+      rewardPointsUsed,
+      shipping: shippingCost,
+      tax,
+      total,
     },
-    status: 'pending'
+    payment: {
+      method: 'cod',
+      status: 'pending',
+    },
+    shipping: {
+      method: shippingMethodEnum,
+    },
+    rewards: {
+      pointsEarned: Math.round(subtotal * 0.01),
+      pointsUsed: rewardPointsUsed,
+      cashbackEarned: 0,
+    },
+    status: 'pending',
   });
 
   const savedOrder = await order.save();
 
   // Update user coins if used
-  if (coinsUsed > 0) {
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { rewardPoints: -coinsUsed }
+  if (rewardPointsUsed > 0) {
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { rewardPoints: -rewardPointsUsed }
     });
   }
 
-  // Add cashback
-  if (cashbackEarned > 0) {
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { rewardPoints: cashbackEarned }
-    });
-  }
+  // No immediate cashback for COD at placement; can be added upon delivery if needed
 
-  // Create transactions
-  if (couponDiscount > 0) {
+  // Create transaction entries for COD order placement
+  try {
+    // Record the purchase (money) — category 'purchase'. Using type 'bonus' as a neutral monetary record.
     await Transaction.create({
-      userId: req.user.id,
-      orderId: savedOrder._id,
-      type: 'coupon_used',
-      amount: couponDiscount,
-      description: `Used coupon: ${coupon.code}`
+      user: req.user._id,
+      order: savedOrder._id,
+      type: 'bonus',
+      category: 'purchase',
+      amount: total,
+      description: `Order placed (COD) - ${savedOrder.orderNumber}`,
+      points: { balance: 0 },
+      status: 'completed'
     });
-  }
 
-  if (coinsDiscount > 0) {
-    await Transaction.create({
-      userId: req.user.id,
-      orderId: savedOrder._id,
-      type: 'coins_used',
-      amount: coinsDiscount,
-      description: `Used ${coinsDiscount} coins`
-    });
+    // Record points redemption if user used points (category 'points')
+    if (rewardPointsUsed > 0) {
+      await Transaction.createRedemption({
+        userId: req.user._id,
+        orderId: savedOrder._id,
+        category: 'points',
+        amount: rewardPointsUsed,
+        points: rewardPointsUsed,
+        description: `Redeemed ${rewardPointsUsed} points for ${savedOrder.orderNumber}`,
+        reference: savedOrder.orderNumber,
+        source: 'purchase'
+      });
+    }
+  } catch (txErr) {
+    console.warn('COD transaction creation warning:', txErr?.message || txErr);
   }
-
-  if (cashbackEarned > 0) {
-    await Transaction.create({
-      userId: req.user.id,
-      orderId: savedOrder._id,
-      type: 'cashback_earned',
-      amount: cashbackEarned,
-      description: `Earned ${cashbackEarned} coins`
-    });
-  }
-
-  // Generate order ID
-  const orderId = `MLTA${String(savedOrder._id).slice(-6).padStart(6, '0')}`;
 
   res.status(201).json({
     success: true,
-    orderId,
-    order: savedOrder
+    orderId: savedOrder.orderNumber,
+    order: {
+      _id: savedOrder._id,
+      orderNumber: savedOrder.orderNumber,
+      items: savedOrder.items,
+      pricing: savedOrder.pricing,
+      status: savedOrder.status,
+      createdAt: savedOrder.createdAt
+    }
   });
+  } catch (error) {
+    console.error('Create COD order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create order'
+    });
+  }
 });
 
 // Create Razorpay order
 export const createRazorpayOrder = asyncHandler(async (req, res) => {
-  const { items, customer, shippingMethod, coupon, coinsUsed, totals } = req.body;
+  try {
+    const { items, shippingMethod, coupon, coinsUsed = 0, shippingAddressId } = req.body;
+      console.log(req.body)
+    // Validate request
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Order must contain at least one item' });
+    }
 
-  // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = shippingMethod.charge || 0;
-  const couponDiscount = coupon ? (coupon.type === 'percentage' ? 
-    (subtotal * coupon.value / 100) : coupon.value) : 0;
-  const coinsDiscount = coinsUsed || 0;
-  const totalDiscount = couponDiscount + coinsDiscount;
-  const grandTotal = Math.max(0, subtotal + shippingCost - totalDiscount);
+    if (!shippingAddressId) {
+      return res.status(400).json({ success: false, message: 'Shipping address is required' });
+    }
+
+    // Build products and order items
+    const slugs = items.map((i) => i.slug).filter(Boolean);
+    const products = await Product.find({ slug: { $in: slugs }, isActive: true });
+    if (products.length !== slugs.length) {
+      return res.status(400).json({ success: false, message: 'Some products are not available' });
+    }
+
+  let subtotal = 0;
+  const orderItems = items.map((cartItem) => {
+    const product = products.find((p) => p.slug === cartItem.slug);
+    const qty = cartItem.quantity || 1;
+    const price = product?.price ?? cartItem.price ?? 0;
+    const originalPrice = product?.originalPrice ?? product?.price ?? cartItem.price ?? 0;
+    const itemSubtotal = price * qty;
+    subtotal += itemSubtotal;
+    return {
+      product: product._id,
+      name: product.name,
+      slug: product.slug,
+      image: product.images?.primary || cartItem.image || '',
+      price,
+      originalPrice,
+      quantity: qty,
+      subtotal: itemSubtotal,
+    };
+  });
+
+  const shippingCost = Math.max(0, shippingMethod?.charge || 0);
+  const tax = 0;
+  const couponDiscount = coupon ? (coupon.type === 'percentage' ? Math.round((subtotal * coupon.value) / 100) : coupon.value) : 0;
+  const rewardPointsUsed = Math.max(0, coinsUsed || 0);
+  const discount = Math.max(0, couponDiscount);
+  const total = Math.max(0, subtotal + shippingCost + tax - discount - rewardPointsUsed);
+
+  // Validate environment keys
+  const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+  if (!keyId || !keySecret) {
+    return res.status(500).json({ success: false, message: 'Payment gateway not configured' });
+  }
+  // Basic sanity check: Razorpay test keys usually start with 'rzp_'
+  if (!keyId.startsWith('rzp_')) {
+    console.warn('Razorpay keyId does not look correct (expected to start with rzp_)');
+  }
+
+  // Debug logging (masked)
+  console.log('Razorpay Config:', {
+    keyId: keyId.slice(0, 12) + '***',
+    keySecretLength: keySecret.length,
+    keySecretPrefix: keySecret.slice(0, 4) + '***'
+  });
 
   // Create Razorpay order
-  const Razorpay = require('razorpay');
   const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
+    key_id: keyId,
+    key_secret: keySecret
   });
 
-  const razorpayOrder = await razorpay.orders.create({
-    amount: Math.round(grandTotal * 100), // Convert to paise
-    currency: 'INR',
-    receipt: `receipt_${Date.now()}`
-  });
+  // Enforce minimum amount 100 paise (Rs. 1) to satisfy Razorpay constraints
+  const amountPaise = Math.max(100, Math.round(total * 100));
+
+  let razorpayOrder;
+  try {
+    console.log('Creating Razorpay order with amount:', amountPaise, 'paise (Rs.', amountPaise/100, ')');
+    razorpayOrder = await razorpay.orders.create({
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `receipt_${Date.now()}`
+    });
+    console.log('Razorpay order created successfully:', razorpayOrder.id);
+  } catch (rpErr) {
+    console.error('Create Razorpay order error:', {
+      statusCode: rpErr?.statusCode,
+      error: rpErr?.error || rpErr?.message,
+      fullError: JSON.stringify(rpErr, null, 2)
+    });
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create payment order. Please check Razorpay credentials.',
+      debug: process.env.NODE_ENV === 'development' ? 'Check server logs for details' : undefined
+    });
+  }
 
   // Create order in database
+  const addressDoc = await Address.findOne({ _id: shippingAddressId, user: req.user._id, isActive: true });
+  if (!addressDoc) {
+    return res.status(400).json({ success: false, message: 'Invalid shipping address' });
+  }
+
+  const shippingMethodMap = {
+    'free-standard': 'standard',
+    'standard': 'standard',
+    'express': 'express',
+  };
+  const shippingMethodEnum = shippingMethodMap[shippingMethod?.id] || 'standard';
+
+  // Generate order number manually as fallback
+  const orderCount = await Order.countDocuments();
+  const timestamp = Date.now().toString().slice(-6);
+  const orderNumber = `MLT${timestamp}${(orderCount + 1).toString().padStart(4, '0')}`;
+
   const order = new Order({
-    userId: req.user.id,
-    items: items.map(item => ({
-      productId: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image
-    })),
-    customer: {
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      email: customer.email,
-      phone: customer.phone,
-      address: {
-        line1: customer.addressline1,
-        line2: customer.addressline2,
-        state: customer.state,
-        pincode: customer.pincode
-      }
-    },
-    shipping: {
-      method: shippingMethod.label,
-      cost: shippingCost
-    },
-    payment: {
-      method: 'Razorpay',
-      status: 'pending',
-      razorpayOrderId: razorpayOrder.id
-    },
+    orderNumber,
+    user: req.user._id,
+    items: orderItems,
+    shippingAddress: addressDoc.formatForShipping(),
     pricing: {
       subtotal,
-      shippingCost,
-      couponDiscount,
-      coinsDiscount,
-      totalDiscount,
-      grandTotal
+      discount,
+      rewardPointsUsed,
+      shipping: shippingCost,
+      tax,
+      total,
     },
-    status: 'pending'
+    payment: {
+      method: 'online',
+      status: 'pending',
+      transactionId: razorpayOrder.id,
+      gatewayResponse: { razorpayOrderId: razorpayOrder.id },
+    },
+    shipping: { method: shippingMethodEnum },
+    rewards: { pointsEarned: Math.round(subtotal * 0.01), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
+    status: 'pending',
   });
 
   const savedOrder = await order.save();
@@ -263,23 +396,36 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     success: true,
     key: process.env.RAZORPAY_KEY_ID,
     razorpayOrderId: razorpayOrder.id,
-    orderId: savedOrder._id
+    orderId: savedOrder._id.toString(), // MongoDB ObjectId for verification
+    orderNumber: savedOrder.orderNumber, // Display-friendly order number
+    amount: total
   });
+  } catch (error) {
+    console.error('Create Razorpay order error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create Razorpay order'
+    });
+  }
 });
 
 // Verify Razorpay payment
 export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
+ 
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
+      return res.status(400).json({ success: false, message: 'Missing payment verification data' });
+    }
 
-  // Verify payment signature
-  const crypto = require('crypto');
-  const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-  hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
-  const generatedSignature = hmac.digest('hex');
+    // Verify payment signature
+    const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
+    hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
+    const generatedSignature = hmac.digest('hex');
 
-  if (generatedSignature !== razorpay_signature) {
-    return res.status(400).json({ success: false, message: 'Invalid payment signature' });
-  }
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+    }
 
   // Update order
   const order = await Order.findById(orderId);
@@ -289,29 +435,83 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
 
   order.payment.status = 'completed';
   order.payment.razorpayPaymentId = razorpay_payment_id;
+  order.payment.razorpayOrderId = razorpay_order_id;
+  order.payment.razorpaySignature = razorpay_signature;
   order.status = 'processing';
   await order.save();
 
   // Update user coins and create transactions
-  const { pricing } = order;
-  
-  if (order.pricing.coinsDiscount > 0) {
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { rewardPoints: -order.pricing.coinsDiscount }
-    });
+  const pointsToDeduct = Math.max(0, order.pricing?.rewardPointsUsed || 0);
+  const pointsToCredit = Math.max(0, order.rewards?.pointsEarned || 0);
+
+  if (pointsToDeduct > 0) {
+    await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: -pointsToDeduct } });
+  }
+  if (pointsToCredit > 0) {
+    await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: pointsToCredit } });
   }
 
-  if (order.pricing.cashbackEarned > 0) {
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { rewardPoints: order.pricing.cashbackEarned }
+  // Create transaction entries after successful online payment verification
+  try {
+    // Record the purchase payment (category 'purchase')
+    await Transaction.create({
+      user: req.user._id,
+      order: order._id,
+      type: 'bonus',
+      category: 'purchase',
+      amount: order.pricing?.total || 0,
+      description: `Payment captured - ${order.orderNumber}`,
+      reference: razorpay_payment_id,
+      points: { balance: 0 },
+      status: 'completed'
     });
-  }
 
-  // Generate order ID
-  const formattedOrderId = `MLTA${String(order._id).slice(-6).padStart(6, '0')}`;
+    // Record points redemption if any (category 'points')
+    if (pointsToDeduct > 0) {
+      await Transaction.createRedemption({
+        userId: req.user._id,
+        orderId: order._id,
+        category: 'points',
+        amount: pointsToDeduct,
+        points: pointsToDeduct,
+        description: `Redeemed ${pointsToDeduct} points for ${order.orderNumber}`,
+        reference: razorpay_payment_id,
+        source: 'purchase'
+      });
+    }
+
+    // Record points earning if any (category 'points')
+    if (pointsToCredit > 0) {
+      await Transaction.createEarning({
+        userId: req.user._id,
+        orderId: order._id,
+        category: 'points',
+        amount: pointsToCredit,
+        points: pointsToCredit,
+        description: `Earned ${pointsToCredit} points for ${order.orderNumber}`,
+        reference: razorpay_payment_id,
+        source: 'purchase'
+      });
+    }
+  } catch (txErr) {
+    console.warn('Online payment transaction creation warning:', txErr?.message || txErr);
+  }
 
   res.json({
     success: true,
-    orderId: formattedOrderId
+    orderId: order.orderNumber,
+    order: {
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      payment: order.payment
+    }
   });
+  } catch (error) {
+    console.error('Verify Razorpay payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to verify payment'
+    });
+  }
 });

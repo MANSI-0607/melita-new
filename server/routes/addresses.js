@@ -22,6 +22,7 @@ router.get('/', getUserAddresses);
 router.get('/default', getDefaultAddress);
 router.get('/validate/:pincode', validatePincode);
 router.get('/suggestions', getAddressSuggestions);
+
 router.post('/', createAddress);
 router.get('/:addressId', getAddress);
 router.put('/:addressId', updateAddress);

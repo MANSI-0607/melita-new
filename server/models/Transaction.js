@@ -170,8 +170,13 @@ transactionSchema.statics.findByUser = function(userId, options = {}) {
 
 // Static method to get user's reward summary
 transactionSchema.statics.getRewardSummary = function(userId) {
+  const userObjectId = (userId && userId._id) ? userId._id : userId;
+  const uid = userObjectId instanceof mongoose.Types.ObjectId
+    ? userObjectId
+    : new mongoose.Types.ObjectId(String(userObjectId));
+
   return this.aggregate([
-    { $match: { user: mongoose.Types.ObjectId(userId) } },
+    { $match: { user: uid } },
     {
       $group: {
         _id: null,

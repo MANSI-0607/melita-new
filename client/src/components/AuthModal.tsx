@@ -23,6 +23,19 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Normalize phone number (remove spaces and non-digits)
+  const normalizePhone = (num: string) => num.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+
+  // Handle phone input change - clean and format
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cleaned = normalizePhone(value);
+    // Only allow digits, limit to 10 characters
+    if (cleaned.length <= 10) {
+      setPhone(cleaned);
+    }
+  };
+
   useEffect(() => {
     if (!open) {
       setPhone('');
@@ -41,11 +54,25 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
+      setLoading(false);
+      return;
+    }
+
+    if (isSignup && !name.trim()) {
+      setError('Please enter your name');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, name: isSignup ? name : undefined, type: isSignup ? 'signup' : 'login' }),
+        body: JSON.stringify({ phone: normalizedPhone, name: isSignup ? name.trim() : undefined, type: isSignup ? 'signup' : 'login' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to send OTP');
@@ -62,11 +89,25 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
+      setLoading(false);
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('OTP must be 6 digits');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp, name: isSignup ? name : undefined, type: isSignup ? 'signup' : 'login' }),
+        body: JSON.stringify({ phone: normalizedPhone, otp, name: isSignup ? name : undefined, type: isSignup ? 'signup' : 'login' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to verify OTP');
@@ -86,8 +127,8 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
     }
   };
 
-  const canSend = phone.trim().length >= 10 && (!isSignup || name.trim().length >= 2);
-  const canVerify = phone.trim().length >= 10 && otp.trim().length >= 4;
+  const canSend = normalizePhone(phone).length === 10 && (!isSignup || name.trim().length >= 2);
+  const canVerify = normalizePhone(phone).length === 10 && otp.trim().length === 6;
 
   return (
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : null)}>
@@ -130,7 +171,13 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
           <div className="space-y-1">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" placeholder="Enter phone number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input
+              id="phone"
+              placeholder="Enter phone number"
+              value={phone}
+              onChange={handlePhoneChange}
+              maxLength={10}
+            />
           </div>
 
           {step === 'verify' && (

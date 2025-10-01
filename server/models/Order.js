@@ -162,6 +162,9 @@ const orderSchema = new mongoose.Schema(
         default: 'pending'
       },
       transactionId: String,
+      razorpayPaymentId: String,
+      razorpayOrderId: String,
+      razorpaySignature: String,
       gatewayResponse: mongoose.Schema.Types.Mixed
     },
     shipping: {
@@ -258,22 +261,26 @@ orderSchema.virtual('estimatedDeliveryDate').get(function() {
 
 // Pre-save middleware to generate order number
 orderSchema.pre('save', async function(next) {
-  if (this.isNew && !this.orderNumber) {
-    const count = await this.constructor.countDocuments();
-    const timestamp = Date.now().toString().slice(-6);
-    this.orderNumber = `MLT${timestamp}${(count + 1).toString().padStart(4, '0')}`;
+  try {
+    if (this.isNew && !this.orderNumber) {
+      const count = await this.constructor.countDocuments();
+      const timestamp = Date.now().toString().slice(-6);
+      this.orderNumber = `MLT${timestamp}${(count + 1).toString().padStart(4, '0')}`;
+    }
+    
+    // Add timeline entry for status changes
+    if (this.isModified('status') && !this.isNew) {
+      this.timeline.push({
+        status: this.status,
+        timestamp: new Date(),
+        note: `Order status changed to ${this.statusDisplay}`
+      });
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
   }
-  
-  // Add timeline entry for status changes
-  if (this.isModified('status')) {
-    this.timeline.push({
-      status: this.status,
-      timestamp: new Date(),
-      note: `Order status changed to ${this.statusDisplay}`
-    });
-  }
-  
-  next();
 });
 
 // Static method to find orders by user

@@ -58,9 +58,39 @@ const productSchema = new mongoose.Schema(
       gallery: [String],
       videos: [String]
     },
-    benefits: [String],
-    ingredients: [String],
-    howToUse: [String],
+
+    // ✅ Benefits with image + text
+    benefits: [
+      {
+        image: { type: String, required: true },
+        text: { type: String, required: true }
+      }
+    ],
+
+    // ✅ Ingredients with name, description, benefits
+    ingredients: [
+      {
+        name: { type: String, required: true },
+        description: { type: String },
+        benefits: [String]
+      }
+    ],
+
+    // ✅ FAQ section
+    faq: [
+      {
+        title: { type: String, required: true },
+        questions: [
+          {
+            question: { type: String, required: true },
+            answer: { type: String, required: true }
+          }
+        ]
+      }
+    ],
+
+ 
+
     specifications: {
       volume: String,
       weight: String,
@@ -111,10 +141,12 @@ const productSchema = new mongoose.Schema(
       default: false
     },
     tags: [String],
-    relatedProducts: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product'
-    }]
+    relatedProducts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+      }
+    ]
   },
   {
     timestamps: true,
@@ -123,7 +155,7 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for better performance
+// Indexes for performance
 productSchema.index({ slug: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ isActive: 1, isFeatured: 1 });
@@ -132,7 +164,7 @@ productSchema.index({ price: 1 });
 productSchema.index({ createdAt: -1 });
 
 // Virtual for discount percentage
-productSchema.virtual('discountPercentage').get(function() {
+productSchema.virtual('discountPercentage').get(function () {
   if (this.originalPrice > 0) {
     return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
   }
@@ -140,15 +172,15 @@ productSchema.virtual('discountPercentage').get(function() {
 });
 
 // Virtual for stock status
-productSchema.virtual('stockStatus').get(function() {
+productSchema.virtual('stockStatus').get(function () {
   if (!this.inventory.trackInventory) return 'in-stock';
   if (this.inventory.stock === 0) return 'out-of-stock';
   if (this.inventory.stock <= this.inventory.lowStockThreshold) return 'low-stock';
   return 'in-stock';
 });
 
-// Pre-save middleware to calculate discount
-productSchema.pre('save', function(next) {
+// Pre-save middleware for discount calculation
+productSchema.pre('save', function (next) {
   if (this.originalPrice > 0 && this.price < this.originalPrice) {
     this.discount = Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
   } else {
@@ -157,18 +189,16 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Static method to find products by category
-productSchema.statics.findByCategory = function(category) {
+// Static methods
+productSchema.statics.findByCategory = function (category) {
   return this.find({ category, isActive: true }).sort({ createdAt: -1 });
 };
 
-// Static method to find featured products
-productSchema.statics.findFeatured = function() {
+productSchema.statics.findFeatured = function () {
   return this.find({ isFeatured: true, isActive: true }).sort({ createdAt: -1 });
 };
 
-// Static method to search products
-productSchema.statics.searchProducts = function(query) {
+productSchema.statics.searchProducts = function (query) {
   return this.find({
     $and: [
       { isActive: true },

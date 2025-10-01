@@ -114,6 +114,14 @@ class ApiService {
     return this.get(`/products/search?q=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
+  // accepts either ObjectId or slug at `/:id`, and returns `{ success, data }`.
+  async getProductidfromslug(slug) {
+    const res = await this.get(`/products/${encodeURIComponent(slug)}`);
+    const id = res?.data?._id;
+    if (!id) throw new Error('Product not found for given slug');
+    return id;
+  }
+
   // Review methods
   async getProductReviews(productId, params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -130,24 +138,13 @@ class ApiService {
   async updateReview(reviewId, reviewData) {
     return this.put(`/reviews/${reviewId}`, reviewData);
   }
-
   async deleteReview(reviewId) {
     return this.delete(`/reviews/${reviewId}`);
   }
 
 
-  async getReviewStats(productId) {
-    return this.get(`/reviews/product/${productId}/stats`);
-  }
-
   async canUserReview(productId) {
     return this.get(`/reviews/product/${productId}/can-review`);
-  }
-
-  async getUserReviews(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = queryString ? `/reviews/user?${queryString}` : '/reviews/user';
-    return this.get(endpoint);
   }
 
   // Order methods

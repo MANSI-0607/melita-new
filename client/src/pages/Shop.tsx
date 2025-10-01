@@ -18,16 +18,16 @@ const Shop = () => {
 
       <main className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h1 className="font-playfair text-4xl lg:text-5xl font-bold text-melita-deep-coffee mb-4">
+          <h1 className="font-headingOne text-4xl lg:text-5xl font-bold text-melita-deep-coffee mb-4">
             Shop Melita
           </h1>
-          <p className="font-roboto text-lg text-melita-medium">
+          <p className="font-headingTwo text-lg text-melita-medium">
             Discover our complete range of luxury skincare products
           </p>
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
           {products.map((product) => (
             <div
               key={product.id}
@@ -49,12 +49,12 @@ const Shop = () => {
 
               {/* Content */}
               <div className="p-4 flex flex-col flex-grow">
-                <Link to={`/products/${product.slug}`} className="font-playfair text-lg font-semibold text-melita-deep-coffee hover:underline">
+                <Link to={`/products/${product.slug}`} className="text-md font-headingTwo font-bold text-gray-800 mt-1 truncate">
                   {product.name}
                 </Link>
 
                 <div className="flex items-baseline gap-2 pt-2">
-                  <span className="text-melita-medium line-through text-sm">{product.originalPrice}</span>
+                  <span className="text-headingTwo line-through text-sm">{product.originalPrice}</span>
                   <span className="text-melita-deep-coffee font-bold text-lg">{product.price}</span>
                 </div>
 
@@ -65,8 +65,8 @@ const Shop = () => {
                       <Star key={i} size={16} fill="currentColor" stroke="currentColor" />
                     ))}
                   </div>
-                  <span className="text-gray-700 text-xs mr-1">{product.rating}/5</span>
-                  <Link to={`/products/${product.slug}#reviews`} className="text-gray-700 text-xs hover:underline">
+                  <span className="text-headingTwo text-xs mr-1">{product.rating}/5</span>
+                  <Link to={`/products/${product.slug}#reviews`} className="text-headingTwo text-xs hover:underline">
                     ({product.reviews} reviews)
                   </Link>
                 </div>

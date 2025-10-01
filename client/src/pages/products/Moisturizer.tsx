@@ -1,6 +1,6 @@
 import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
-import SimpleProductReview from '@/components/SimpleProductReview';
+import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
 import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
@@ -11,10 +11,15 @@ import how from '@/assets/product_img/cleanser/how.jpg';
 import howmob from '@/assets/product_img/cleanser/howmob.jpg';
 import howtouse from '@/assets/product_img/cleanser/howtouse.jpg';
 import howtousemob from '@/assets/product_img/cleanser/howtousemob.jpg';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import useProductIngredients from '@/hooks/useProductIngredients';
 
 const Moisturizer = () => {
-  const ingredientData = {
+  const productSlug = 'moisturizer';
+  const { ingredients: productIngredients } = useProductIngredients(productSlug);
+
+  // Fallback static data
+  const fallbackIngredients = {
     "Ceramides": {
       title: "Ceramides",
       description: "Ceramides — Barrier Strengtheners. Help restore the skin barrier and lock in moisture.",
@@ -24,11 +29,6 @@ const Moisturizer = () => {
       title: "Squalane",
       description: "Squalane — Lightweight hydration that mimics skin's natural oils.",
       benefits: ["Hydration", "Soft, Supple Skin"]
-    },
-    "All Ingredients": {
-      title: "Complete Ingredient List",
-      description: "List your moisturizer ingredients here...",
-      benefits: []
     }
   } as const;
 
@@ -40,9 +40,20 @@ const Moisturizer = () => {
     { text: "Layers Well Under Sunscreen", icon: Palette },
   ];
 
-  const [selectedIngredient, setSelectedIngredient] = useState<keyof typeof ingredientData>("Ceramides");
-  const ingredients = Object.keys(ingredientData) as Array<keyof typeof ingredientData>;
-  const currentIngredient = ingredientData[selectedIngredient];
+  const [selectedIngredient, setSelectedIngredient] = useState<string>("Ceramides");
+  const ingredientNames = (productIngredients && productIngredients.length > 0)
+    ? productIngredients.map((i: any) => i.name)
+    : Object.keys(fallbackIngredients);
+
+  useEffect(() => {
+    if (productIngredients && productIngredients.length > 0) {
+      setSelectedIngredient(productIngredients[0].name);
+    }
+  }, [productIngredients]);
+
+  const currentIngredient = (productIngredients && productIngredients.length > 0)
+    ? (productIngredients.find((i: any) => i.name === selectedIngredient) || { title: selectedIngredient, description: '', benefits: [] })
+    : (fallbackIngredients as any)[selectedIngredient];
 
   return (
     <>
@@ -107,43 +118,45 @@ const Moisturizer = () => {
             <div className="lg:col-span-2 space-y-6">
               <h3 className="text-green-800 font-bold uppercase text-lg mb-6">Key Ingredients</h3>
               <div className="grid grid-cols-2 gap-3">
-                {ingredients.map((ingredient, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedIngredient(ingredient)}
-                    className={`py-3 px-4 rounded-full text-sm font-medium transition-all duration-200 text-center border-2 ${
-                      selectedIngredient === ingredient
-                        ? 'bg-amber-800 text-white border-amber-800 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-amber-600 hover:bg-amber-50'
-                    }`}
-                  >
-                    {ingredient}
-                  </button>
-                ))}
+                {ingredientNames.map((name) => {
+                  const title = productIngredients?.find((i: any) => i.name === name)?.title || (fallbackIngredients as any)[name]?.title || name;
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => setSelectedIngredient(name)}
+                      className={`py-3 px-4 rounded-full text-sm font-medium transition-all duration-200 text-center border-2 ${
+                        selectedIngredient === name
+                          ? 'bg-amber-800 text-white border-amber-800 shadow-md'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-amber-600 hover:bg-amber-50'
+                      }`}
+                    >
+                      {title}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Right: Ingredient Detail */}
             <div className="lg:col-span-3">
               <div className="bg-white rounded-2xl p-8 shadow-sm min-h-[320px] transition-all duration-300">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">{currentIngredient.title}</h3>
-                <p className="text-gray-700 mb-8 leading-relaxed">{currentIngredient.description}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{currentIngredient?.title || selectedIngredient}</h3>
+                <p className="text-gray-700 mb-8 leading-relaxed">{currentIngredient?.description}</p>
                 <div>
-                  {selectedIngredient === "All Ingredients" ? (
-                    <></>
-                  ) : currentIngredient.benefits.length > 0 ? (
-                    <>
-                      <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
-                      <div className="space-y-3">
-                        {currentIngredient.benefits.map((benefit, idx) => (
-                          <div key={idx} className="flex items-start space-x-3">
-                            <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                            <span className="text-gray-700 leading-relaxed">{benefit}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
+                  <>
+                    <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
+                    <div className="space-y-3">
+                      {(currentIngredient?.benefits || []).map((benefit: string, idx: number) => (
+                        <div key={idx} className="flex items-start space-x-3">
+                          <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-700 leading-relaxed">{benefit}</span>
+                        </div>
+                      ))}
+                      {(!currentIngredient?.benefits || currentIngredient.benefits.length === 0) && (
+                        <span className="text-sm text-gray-500">No specific benefits listed.</span>
+                      )}
+                    </div>
+                  </>
                 </div>
               </div>
             </div>
@@ -163,8 +176,8 @@ const Moisturizer = () => {
         <div className="relative w-full min-h-[540px] max-h-[600px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howtousemob})` }} />
       </section>
 
-      <ProductFAQ />
-      <SimpleProductReview slug="moisturizer" />
+      <ProductFAQ slug="moisturizer" />
+      <ProductReview slug="moisturizer" />
       <Footer />
     </>
   );

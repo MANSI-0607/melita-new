@@ -66,16 +66,28 @@ const ProductShowcase = () => {
                   {/* Hover Add to Bag (Desktop) */}
                   <div className="hidden sm:block absolute top-[90%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-500">
                     <div className="flex gap-2">
-                      <AddToCartButton
-                        product={{
-                          id: product.id,
-                          slug: product.slug,
-                          name: product.name,
-                          price: parseFloat(product.price.replace(/[₹,]/g, '')),
-                          image: product.image
-                        }}
-                        className="bg-[#835339] text-white font-headingTwo font-semibold rounded-sm text-base px-6 py-2 transition-all whitespace-nowrap shadow-md hover:bg-white hover:text-[#835339] hover:border border-[#835339]"
-                      />
+                    <AddToCartButton
+  product={{
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    price: parseFloat(product.price.replace(/[₹,]/g, '')),
+    image: product.image
+  }}
+  className="
+    bg-[#835339] 
+    text-white 
+    font-headingTwo font-semibold 
+    rounded-sm text-base 
+    px-6 py-2 
+    transition-all 
+    whitespace-nowrap 
+    shadow-md 
+    hover:bg-[#5c3925]  /* darker brown on hover */
+  "
+/>
+
+
                       
                    
                     </div>
@@ -99,16 +111,27 @@ const ProductShowcase = () => {
 
                 {/* Add to Bag (Mobile) */}
                 <div className="block sm:hidden px-4 mb-6 bg-[#f0e4d4] h-[60px] flex items-center justify-center gap-2">
-                  <AddToCartButton
-                    product={{
-                      id: product.id,
-                      slug: product.slug,
-                      name: product.name,
-                      price: parseFloat(product.price.replace(/[₹,]/g, '')),
-                      image: product.image
-                    }}
-                    className="flex-1 bg-white font-headingTwo font-semibold rounded-sm text-base px-4 py-2 transition-all shadow-md text-[#835339] border border-[#835339] hover:bg-[#835339] hover:text-white"
-                  />
+                <AddToCartButton
+  product={{
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    price: parseFloat(product.price.replace(/[₹,]/g, '')),
+    image: product.image
+  }}
+  className="
+    flex-1 
+    bg-[#835339] 
+    text-white 
+    font-headingTwo font-semibold 
+    rounded-sm text-base 
+    px-4 py-2 
+    transition-all 
+    shadow-md 
+    hover:bg-[#5c3925]  /* darker brown on hover */
+  "
+/>
+
                   
                 </div>
               </div>

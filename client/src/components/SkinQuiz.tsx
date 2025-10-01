@@ -56,66 +56,66 @@ const productRecommendations = {
     {
       name: "Melita Renewing Gel Cleanser",
       image: cleanser1,
-      link: "/products/hydrating-gentle-cleanser",
+      link: "/products/cleanser",
     },
     {
       name: "Melita Balancing Moisturizer",
       image: moisturizer1,
-      link: "/product_img/moisturizer/moisturizer1.jpg",
+      link: "/products/moisturizer",
     },
     {
       name: "Melita Ultra Hydrating Essence",
       image: essence1,
-      link: "/product_img/essence/essence1.jpg",
+      link: "/products/essence",
     },
     {
       name: "Melita Ultra Protecting Sunscreen",
       image: sunscreen1,
-      link: "/product_img/sunscreen/sunscreen1.jpg",
+      link: "/products/sunscreen",
     },
   ],
   balanced: [
     {
       name: "Gentle Purifying Cleanser",
       image: cleanser1,
-      link: "/product_img/cleanser/cleanser1.jpg",
+      link: "/products/cleanser",
     },
     {
       name: "Balancing Skin Essence",
       image: essence1,
-      link: "/product_img/essence/essence1.jpg",
+      link: "/products/essence",
     },
     {
       name: "Lightweight Moisturizer",
       image: moisturizer1,
-      link: "/product_img/moisturizer/moisturizer1.jpg",
+      link: "/products/moisturizer",
     },
     {
       name: "Everyday Broad-Spectrum SPF",
       image: sunscreen1,
-      link: "/products/spf2",
+      link: "/products/sunscreen",
     },
   ],
   resilient: [
     {
       name: "Gentle Daily Cleanser",
       image: cleanser1,
-      link: "/products/cleanser3",
+      link: "/products/cleanser",
     },
     {
       name: "Hydra-Boost Essence",
       image: essence1,
-      link: "/products/essence3",
+      link: "/products/essence",
     },
     {
       name: "Light Moisturizing Gel",
       image: moisturizer1,
-      link: "/products/moisturizer3",
+      link: "/products/moisturizer",
     },
     {
       name: "Broad-Spectrum SPF 30",
       image: sunscreen1,
-      link: "/products/spf3",
+      link: "/products/sunscreen",
     },
   ],
 };

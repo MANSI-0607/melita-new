@@ -1,39 +1,33 @@
-// Product ID mapping between frontend and backend
-// This maps the frontend product IDs to the backend MongoDB ObjectIds
+// Simple in-memory cache for slug -> backend _id
+const productIdCache = {};
 
-export const PRODUCT_ID_MAPPING = {
-  1: '65c7b1d0e1c2d3a4b5f6e7c8', // cleanser
-  2: '65c7b1d0e1c2d3a4b5f6e7c9', // essence  
-  3: '65c7b1d0e1c2d3a4b5f6e7ca', // moisturizer
-  4: '65c7b1d0e1c2d3a4b5f6e7cb', // sunscreen
-  5: '65c7b1d0e1c2d3a4b5f6e7cc', // dry skin combo
-  6: '65c7b1d0e1c2d3a4b5f6e7cd', // oily skin combo
-  7: '65c7b1d0e1c2d3a4b5f6e7ce', // barrier boost combo
-  8: '65c7b1d0e1c2d3a4b5f6e7cf', // barrier care starter duo
+// Resolve backend product _id from slug using backend route GET /products/slug/:slug
+export const getBackendProductIdFromSlug = async (slug) => {
+  if (!slug) return null;
+  if (productIdCache[slug]) return productIdCache[slug];
+
+  try {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const res = await fetch(`${baseUrl}/products/slug/${encodeURIComponent(slug)}`);
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Backend did not return JSON');
+    }
+
+    const json = await res.json();
+    // Expected: { success: true, data: "<mongoId>" }
+    if (!json?.success || !json?.data) {
+      throw new Error(json?.message || 'Failed to fetch product ID');
+    }
+
+    const id = json.data;
+    productIdCache[slug] = id;
+    return id;
+  } catch (err) {
+    console.error('Error fetching backend product ID:', err);
+    return null;
+  }
 };
 
-// Get backend product ID from frontend product ID
-export const getBackendProductId = (frontendId) => {
-  return PRODUCT_ID_MAPPING[frontendId];
-};
 
-// Get frontend product ID from slug
-export const getFrontendProductId = (slug) => {
-  const slugToId = {
-    'cleanser': 1,
-    'essence': 2,
-    'moisturizer': 3,
-    'sunscreen': 4,
-    'dry-skin-daily-essentials': 5,
-    'oily-skin-daily-essentials': 6,
-    'barrier-boost-combo': 7,
-    'barrier-care-starter-duo': 8,
-  };
-  return slugToId[slug];
-};
-
-// Get backend product ID from slug
-export const getBackendProductIdFromSlug = (slug) => {
-  const frontendId = getFrontendProductId(slug);
-  return getBackendProductId(frontendId);
-};

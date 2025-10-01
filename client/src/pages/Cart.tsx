@@ -26,7 +26,7 @@ const Cart = () => {
          <TopStrip />
          <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <div className="text-center py-20">
             <ShoppingBag className="mx-auto h-24 w-24 text-gray-400 mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h1>
             <p className="text-gray-600 mb-8">Add some products to get started!</p>

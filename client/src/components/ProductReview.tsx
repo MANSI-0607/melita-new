@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useProductReviews, useCreateReview, useCanUserReview } from '@/hooks/useReviews';
 import { getBackendProductIdFromSlug } from '@/utils/productMapping';
 
-const ProductReview = ({ productId, productSlug }) => {
+const ProductReview = ({slug }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [reviewForm, setReviewForm] = useState({
@@ -19,13 +19,30 @@ const ProductReview = ({ productId, productSlug }) => {
   });
   const { toast } = useToast();
 
-  // Get backend product ID from slug if productId is not provided
-  const backendProductId = productId || getBackendProductIdFromSlug(productSlug);
+  // Resolve backend product ID from slug
+  const [backendProductId, setBackendProductId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<boolean>(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setResolvingId(true);
+        const id = await getBackendProductIdFromSlug(slug);
+        if (mounted) setBackendProductId(id);
+      } catch (e) {
+        if (mounted) setBackendProductId(null);
+      } finally {
+        if (mounted) setResolvingId(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [slug]);
 
   // API hooks
-  const { reviews, stats, loading, error, refetch } = useProductReviews(backendProductId);
+  const { reviews, stats, loading, error, refetch } = useProductReviews(backendProductId || undefined);
   const { createReview, loading: creatingReview } = useCreateReview();
-  const { canReview, hasPurchased, verified, existingReview, loading: checkingReview } = useCanUserReview(backendProductId);
+  const { canReview, hasPurchased, verified, existingReview, loading: checkingReview } = useCanUserReview(backendProductId || undefined);
 
   // Use stats from API or fallback to calculated values
   const totalReviews = stats?.totalReviews || reviews.length;
@@ -56,7 +73,7 @@ const ProductReview = ({ productId, productSlug }) => {
     }
 
     try {
-      await createReview(productId, {
+      await createReview(backendProductId, {
         rating: reviewForm.rating,
         title: reviewForm.title,
         reviewText: reviewForm.reviewText
@@ -83,15 +100,15 @@ const ProductReview = ({ productId, productSlug }) => {
     }));
   };
 
-  // Show loading state
-  if (loading) {
+  // Show loading state while resolving product id or fetching reviews
+  if (resolvingId || loading) {
     return (
       <section id="reviews" className="max-w-7xl mx-auto rounded-2xl md:px-4">
         <div className="px-6 py-10 max-w-7xl mx-auto">
           <div className="text-center">
             <div className="mb-4">Loading reviews...</div>
             <div className="text-sm text-gray-500">Product ID: {backendProductId}</div>
-            <div className="text-sm text-gray-500">Slug: {productSlug}</div>
+            <div className="text-sm text-gray-500">Slug: {slug}</div>
           </div>
         </div>
       </section>
@@ -106,7 +123,7 @@ const ProductReview = ({ productId, productSlug }) => {
           <div className="text-center">
             <div className="mb-4 text-red-600">Error loading reviews: {error}</div>
             <div className="text-sm text-gray-500">Product ID: {backendProductId}</div>
-            <div className="text-sm text-gray-500">Slug: {productSlug}</div>
+            <div className="text-sm text-gray-500">Slug: {slug}</div>
             <button 
               onClick={refetch}
               className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Footer } from 'react-day-picker';
+import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -18,21 +18,48 @@ const Signup = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Normalize phone number (remove spaces and non-digits)
+  const normalizePhone = (num: string) => num.replace(/[\s\-\(\)]/g, '').replace(/\D/g, '');
+
+  // Handle phone input change - clean and format
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cleaned = normalizePhone(value);
+    // Only allow digits, limit to 10 characters
+    if (cleaned.length <= 10) {
+      setPhone(cleaned);
+    }
+  };
+
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
+      setLoading(false);
+      return;
+    }
+
+    if (!name.trim()) {
+      setError('Please enter your name');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, name, type: 'signup' })
+        body: JSON.stringify({ phone: normalizedPhone, name: name.trim(), type: 'signup' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
       setStep('verify');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -42,11 +69,25 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
+      setLoading(false);
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('OTP must be 6 digits');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp, name, type: 'signup' })
+        body: JSON.stringify({ phone: normalizedPhone, otp, type: 'signup' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to verify OTP');
@@ -59,7 +100,7 @@ const Signup = () => {
 
       navigate('/'); // Redirect to home after signup
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -97,8 +138,9 @@ const Signup = () => {
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1234567890"
+                onChange={handlePhoneChange}
+                placeholder="9876543210"
+                maxLength={10}
                 required
               />
             </div>

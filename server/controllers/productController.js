@@ -321,3 +321,71 @@ export const getProductFilters = async (req, res) => {
     });
   }
 };
+
+// Get only FAQ for a product by slug
+export const getProductFaqBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug || typeof slug !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Product slug is required'
+      });
+    }
+
+    const product = await Product.findOne({ slug }).select('faq isActive');
+
+    if (!product || !product.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: product.faq || []
+    });
+  } catch (error) {
+    console.error('Get product FAQ by slug error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product FAQ'
+    });
+  }
+};
+
+// Get only product ID for a product by slug
+export const getProductIDfromslug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug || typeof slug !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Product slug is required'
+      });
+    }
+
+    const product = await Product.findOne({ slug }).select('_id isActive');
+
+    if (!product || !product.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: product._id
+    });
+  } catch (error) {
+    console.error('Get product ID by slug error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product ID'
+    });
+  }
+};

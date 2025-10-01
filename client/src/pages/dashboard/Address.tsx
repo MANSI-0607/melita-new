@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, MapPin, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
 interface SavedAddress {
   id: string;
   firstName: string;
@@ -33,6 +33,53 @@ export default function Address() {
     pincode: "",
   });
 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Map API address (snake_case) -> UI address (camelCase)
+  const mapApiToUi = (a: any): SavedAddress => ({
+    id: a._id,
+    firstName: a.first_name,
+    lastName: a.last_name,
+    email: a.email,
+    phone: a.phone,
+    addressLine1: a.addressline1,
+    addressLine2: a.addressline2 || "",
+    state: a.state,
+    pincode: a.pincode,
+  });
+
+  // Map UI form -> API payload (snake_case)
+  const mapFormToApi = (f: typeof formData) => ({
+    first_name: f.firstName,
+    last_name: f.lastName,
+    email: f.email,
+    phone: f.phone,
+    addressline1: f.addressLine1,
+    addressline2: f.addressLine2,
+    state: f.state,
+    pincode: f.pincode,
+  });
+
+  useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const token = localStorage.getItem('melita_token');
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/addresses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const items = (data.data || data.addresses || []).map(mapApiToUi);
+          setSavedAddresses(items);
+        }
+      } catch (e) {
+        console.error('Failed to load addresses', e);
+      }
+    };
+    loadAddresses();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -40,35 +87,68 @@ export default function Address() {
     });
   };
 
-  const handleSaveAddress = (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newAddress: SavedAddress = {
-      id: Date.now().toString(),
-      ...formData,
-    };
-    setSavedAddresses([...savedAddresses, newAddress]);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      addressLine1: "",
-      addressLine2: "",
-      state: "",
-      pincode: "",
-    });
-    toast({
-      title: "Address saved successfully",
-      description: "Your new address has been added to your account.",
-    });
+    try {
+      const token = localStorage.getItem('melita_token');
+      if (!token) {
+        toast({ title: 'Authentication Required', description: 'Please log in to save address', variant: 'destructive' });
+        return;
+      }
+      const payload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        addressline1: formData.addressLine1,
+        addressline2: formData.addressLine2,
+        state: formData.state,
+        pincode: formData.pincode,
+      };
+      const res = await fetch(`${API_BASE}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to save address');
+      const a = data.address || data.data;
+      const ui = mapApiToUi(a);
+      setSavedAddresses((prev) => [ui, ...prev]);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        state: "",
+        pincode: "",
+      });
+      toast({ title: 'Address saved successfully', description: 'Your new address has been added to your account.' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to save address', variant: 'destructive' });
+    }
   };
 
-  const handleDeleteAddress = (id: string) => {
-    setSavedAddresses(savedAddresses.filter(addr => addr.id !== id));
-    toast({
-      title: "Address deleted",
-      description: "The address has been removed from your account.",
-    });
+  const handleDeleteAddress = async (id: string) => {
+    try {
+      const token = localStorage.getItem('melita_token');
+      if (!token) return;
+      const res = await fetch(`${API_BASE}/addresses/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to delete address');
+      setSavedAddresses((prev) => prev.filter((a) => a.id !== id));
+      toast({ title: 'Address deleted', description: 'The address has been removed from your account.' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || 'Failed to delete address', variant: 'destructive' });
+    }
   };
 
   return (

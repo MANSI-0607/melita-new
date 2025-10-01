@@ -11,8 +11,8 @@ import profileRoutes from './routes/profile.js';
 import addressRoutes from './routes/addresses.js';
 import rewardRoutes from './routes/rewards.js';
 import reviewRoutes from './routes/reviews.js';
-import simpleProductRoutes from './routes/simpleProducts.js';
 import checkoutRoutes from './routes/checkout.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 connectDB();
@@ -42,6 +42,9 @@ app.use(cors({
   credentials: true,
 }));
 
+// Serve static files for product/uploads
+app.use('/uploads', express.static('uploads'));
+
 app.get("/", (req, res) => {
   res.json({ 
     message: "Melita E-commerce API", 
@@ -59,6 +62,37 @@ app.get("/", (req, res) => {
   });
 });
 
+// Test endpoint for token validation
+app.get("/test-token", (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  console.log('Test endpoint - Token received:', token);
+  console.log('Test endpoint - JWT Secret:', process.env.JWT_SECRET || 'melita_dev_secret');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+  
+  try {
+    const jwt = require('jsonwebtoken');
+    const TOKEN_SECRET = process.env.JWT_SECRET || 'melita_dev_secret';
+    const decoded = jwt.verify(token, TOKEN_SECRET);
+    res.json({ 
+      success: true, 
+      decoded,
+      secret: TOKEN_SECRET 
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ 
+      success: false, 
+      error: error.message,
+      secret: process.env.JWT_SECRET || 'melita_dev_secret'
+    });
+  }
+});
+
 // API Routes
 app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
@@ -67,8 +101,9 @@ app.use('/profile', profileRoutes);
 app.use('/addresses', addressRoutes);
 app.use('/rewards', rewardRoutes);
 app.use('/reviews', reviewRoutes);
-app.use('/api/products', simpleProductRoutes);
+
 app.use('/checkout', checkoutRoutes);
+app.use('/admin', adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

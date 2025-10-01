@@ -118,41 +118,54 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       />
                     </div>
 
-                    {/* Product Details */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium semibold text-medium text-gray-900 truncate">
-                        {item.name}
-                      </h3>
-                      <p className="text-medium text-gray-500">{formatPrice(item.price)}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          className="w-8 h-8 p-0 border-[#6b3d2a] text-[#6b3d2a] hover:bg-[#f0e4d4]"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="text-medium font-medium w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          className="w-8 h-8 p-0 border-[#6b3d2a] text-[#6b3d2a] hover:bg-[#f0e4d4]"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
+                  {/* Product Details */}
+<div className="flex-1 min-w-0">
+  <h3 className="font-medium semibold text-medium text-gray-900 truncate">
+    {item.name}
+  </h3>
+  <p className="text-medium text-gray-500">{formatPrice(item.price)}</p>
+
+  {/* Quantity Controls */}
+  <form
+    onSubmit={(e) => e.preventDefault()}
+    className="inline-flex items-center mt-2 border border-gray-300 rounded-md overflow-hidden"
+  >
+    {/* Minus */}
+    <button
+      type="button"
+      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+      disabled={item.quantity <= 1}
+      className="min-w-[3rem] h-9 flex items-center justify-center text-gray-700 hover:bg-gray-50 
+                 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <Minus className="w-4 h-4" />
+    </button>
+
+    {/* Quantity */}
+    <span className="min-w-[3rem] h-9 flex items-center justify-center text-gray-900 font-medium border-x border-gray-300">
+      {item.quantity}
+    </span>
+
+    {/* Plus */}
+    <button
+      type="button"
+      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+      className="min-w-[3rem] h-9 flex items-center justify-center text-gray-700 hover:bg-gray-50"
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+  </form>
+</div>
+
 
                     {/* Remove Button */}
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="lg"
                       onClick={() => handleRemoveItem(item.id, item.name)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5 scale-125" />
                     </Button>
                   </div>
                 ))

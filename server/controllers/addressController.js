@@ -52,7 +52,12 @@ export const getDefaultAddress = async (req, res) => {
 // Create new address
 export const createAddress = async (req, res) => {
   try {
-    const userId = req.user._id;
+    console.log("fg",req.user);
+    const userId = req.user._id
+    console.log("fg",userId);
+    console.log('Creating address for user:', userId);
+    console.log('Address data received:', req.body);
+    
     const addressData = {
       ...req.body,
       user: userId
@@ -60,9 +65,10 @@ export const createAddress = async (req, res) => {
 
     // Validate pincode
     if (!Address.validatePincode(addressData.pincode)) {
+      console.log('Pincode validation failed for:', addressData.pincode);
       return res.status(400).json({
         success: false,
-        message: 'Invalid pincode format'
+        message: 'Invalid pincode format. Please enter a valid 6-digit Indian pincode.'
       });
     }
 
@@ -89,7 +95,8 @@ export const createAddress = async (req, res) => {
     
     res.status(500).json({
       success: false,
-      message: 'Failed to create address'
+      message: 'Failed to create address',
+      error: error.message
     });
   }
 };
