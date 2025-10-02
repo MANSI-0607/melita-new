@@ -60,6 +60,13 @@ const Checkout: React.FC = () => {
     return API_BASE ? `${API_BASE}${path}` : path;
   };
 
+  // Quick-apply a coupon from the available list
+  const applyCouponFromList = async (code: string) => {
+    if (appliedCoupon || isLoading) return;
+    setCouponCode(code);
+    await applyCoupon();
+  };
+
   // State
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -111,7 +118,7 @@ const Checkout: React.FC = () => {
   const [couponCode, setCouponCode] = useState<string>('');
   const [couponMessage, setCouponMessage] = useState<string>('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-  const [showCoupons, setShowCoupons] = useState<boolean>(false);
+  const [showCoupons, setShowCoupons] = useState<boolean>(true);
   const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
 
   // Coins
@@ -362,7 +369,7 @@ const Checkout: React.FC = () => {
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) {
-      setCouponMessage('Please enter a coupon code');
+      setCouponMessage('Please click on Apply button');
       return;
     }
 
@@ -451,7 +458,8 @@ const Checkout: React.FC = () => {
   const shippingCost = shippingMethod.charge;
   const totalDiscount = couponDiscount + coinsDiscount;
   const grandTotal = Math.max(0, subtotal + shippingCost - totalDiscount);
-  const cashbackEarned = Math.floor(Math.max(0, subtotal - couponDiscount) * 0.2);
+  // Rewards: 10% of order price everywhere (match backend)
+  const cashbackEarned = Math.floor(grandTotal * 0.10);
 
   const placeOrder = async () => {
     if (!selectedAddressId) {
@@ -575,8 +583,10 @@ const Checkout: React.FC = () => {
       // Make sure SDK is present even if index.html failed to load it in time
       await ensureRazorpayLoaded();
 
+      // Capture MongoDB _id for immediate verification (avoid stale state race)
+      const mongoOrderId = data.orderId;
       // Store MongoDB _id for verification and orderNumber for display
-      setOrderIdForVerification(data.orderId);
+      setOrderIdForVerification(mongoOrderId);
       setOrderNumber(data.orderNumber);
 
       const options = {
@@ -599,7 +609,7 @@ const Checkout: React.FC = () => {
                 razorpay_payment_id: razorpayResponse.razorpay_payment_id,
                 razorpay_order_id: razorpayResponse.razorpay_order_id,
                 razorpay_signature: razorpayResponse.razorpay_signature,
-                orderId: orderIdForVerification, // Use stored MongoDB _id
+                orderId: mongoOrderId, // Use fresh MongoDB _id captured above
               }),
             });
 
@@ -1205,19 +1215,52 @@ const Checkout: React.FC = () => {
                           disabled={!!appliedCoupon || isLoading}
                           className="flex-1"
                         />
-                        <Button onClick={applyCoupon} disabled={!couponCode || !!appliedCoupon || isLoading} variant="outline" size="sm">
-                          Apply
-                        </Button>
-                      </div>
-                      {couponMessage && <p className={`text-xs ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>{couponMessage}</p>}
-                      {appliedCoupon && (
-                        <div className="flex items-center justify-between text-sm text-green-600">
-                          <span>Discount ({appliedCoupon.code}): -₹{couponDiscount.toFixed(2)}</span>
-                          <Button onClick={removeCoupon} variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+                        {appliedCoupon ? (
+                          <Button onClick={removeCoupon} disabled={isLoading} variant="outline" size="sm" className="text-red-600">
                             Remove
                           </Button>
+                        ) : (
+                          <Button onClick={applyCoupon} disabled={!couponCode || isLoading} variant="outline" size="sm">
+                            Apply
+                          </Button>
+                        )}
+                      </div>
+                      {couponMessage && <p className={`text-xs ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>{couponMessage}</p>}
+                      {/* Available coupons from backend */}
+                      {availableCoupons?.length > 0 && (
+                        <div className="mt-2 border-t pt-3 space-y-2">
+                          <p className="text-xs text-gray-500">Available coupons</p>
+                          <div className="space-y-2 max-h-40 overflow-auto pr-1">
+                            {availableCoupons.map((c: any) => {
+                              const meetsMin = (subtotal || 0) >= (c.minOrderAmount || 0);
+                              const disabled = !!appliedCoupon || isLoading || !meetsMin;
+                              return (
+                                <div key={c._id || c.code} className="flex items-start justify-between gap-3 p-2 rounded-md border">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">{c.code}</p>
+                                    {c.description && (
+                                      <p className="text-xs text-gray-600">{c.description}</p>
+                                    )}
+                                    <p className="text-[11px] text-gray-500">
+                                      {c.type === 'percentage' ? `${c.value}% off` : `₹${c.value} off`}
+                                      {c.minOrderAmount ? ` • Min order ₹${c.minOrderAmount}` : ''}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={disabled}
+                                    onClick={() => applyCouponFromList(c.code)}
+                                  >
+                                    {meetsMin ? 'Apply' : 'Not Eligible'}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
+                      {/* Removed separate below-the-input Remove control; action toggles on main button */}
                     </div>
                   )}
                 </div>

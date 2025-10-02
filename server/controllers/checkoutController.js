@@ -1,12 +1,47 @@
 import asyncHandler from 'express-async-handler';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
+import axios from 'axios';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Address from '../models/Address.js';
 import Transaction from '../models/Transaction.js';
 import Coupon from '../models/Coupon.js';
+
+// =====================
+// Fast2SMS helper (top-level)
+// Template: "Hi {#VAR#}, your order #{#VAR#} has been successfully placed on Melita. Thank you for shopping with us! Website - melita.in"
+// Variables mapping => [customerName, orderNumber]
+// =====================
+const sendOrderConfirmationSMS = async ({ phone, customerName, orderNumber }) => {
+  try {
+    const API_URL = 'https://www.fast2sms.com/dev/bulkV2';
+    const API_KEY = process.env.FAST2SMS_API_KEY;
+    const route = process.env.FAST2SMS_ROUTE || 'dlt';
+    const sender_id = process.env.FAST2SMS_SENDER_ID || 'MELITA';
+    const message = process.env.FAST2SMS_TEMPLATE_ID_ORDER_CONFIRMATION || '184313';
+    const flash = '0';
+    const numbers = String(phone || '').trim();
+    if (!API_KEY || !numbers) return;
+
+    const params = {
+      authorization: API_KEY,
+      route,
+      sender_id,
+      message,
+      // Comma-separated values for {#VAR#} placeholders in the same order as template
+      variables_values: `${(customerName || '').trim()},${orderNumber}`,
+      numbers,
+      flash,
+      schedule_time: ''
+    };
+
+    await axios.get(API_URL, { params });
+  } catch (err) {
+    console.warn('Fast2SMS error:', err?.response?.data || err?.message || err);
+  }
+};
 
 // Get user addresses
 export const getUserAddresses = asyncHandler(async (req, res) => {
@@ -47,6 +82,7 @@ export const addAddress = asyncHandler(async (req, res) => {
 
 // Get available coupons
 export const getAvailableCoupons = asyncHandler(async (req, res) => {
+  // Fetch active global/user coupons
   const coupons = await Coupon.find({ 
     $or: [
       { userId: req.user.id, isActive: true },
@@ -54,7 +90,22 @@ export const getAvailableCoupons = asyncHandler(async (req, res) => {
     ]
   }).sort({ createdAt: -1 });
 
-  res.json({ success: true, coupons });
+  // Find one-time coupons already used by this user via transactions metadata
+  const usedCouponIds = await Transaction.distinct('metadata.couponId', {
+    user: req.user._id,
+    'metadata.source': 'coupon'
+  });
+
+  // Exclude coupons with usageLimit === 1 that have been used already
+  const filtered = coupons.filter(c => {
+    if (c.usageLimit === 1 && usedCouponIds?.length) {
+      // Convert both to strings for proper comparison
+      return !usedCouponIds.includes(String(c._id));
+    }
+    return true;
+  });
+
+  res.json({ success: true, coupons: filtered });
 });
 
 // Apply coupon
@@ -75,13 +126,12 @@ export const applyCoupon = asyncHandler(async (req, res) => {
 
   // Check if user has already used this coupon
   if (coupon.usageLimit === 1) {
-    const existingUsage = await Transaction.findOne({
-      userId: req.user.id,
-      couponId: coupon._id,
-      type: 'coupon_used'
+    const existed = await Transaction.findOne({
+      user: req.user._id,
+      'metadata.couponId': String(coupon._id),
+      'metadata.source': 'coupon'
     });
-
-    if (existingUsage) {
+    if (existed) {
       return res.status(400).json({ success: false, message: 'You have already used this coupon' });
     }
   }
@@ -173,44 +223,49 @@ export const createCodOrder = asyncHandler(async (req, res) => {
       tax,
       total,
     },
+    // Persist coupon info for later verification/usage tracking
+    coupon: coupon ? {
+      id: coupon._id || coupon.id,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      usageLimit: coupon.usageLimit
+    } : null,
     payment: {
       method: 'cod',
-      status: 'pending',
+      status: 'completed', // COD orders are considered confirmed upon placement
     },
     shipping: {
       method: shippingMethodEnum,
     },
+    // Rewards: 10% of order total
     rewards: {
-      pointsEarned: Math.round(subtotal * 0.01),
+      pointsEarned: Math.round(total * 0.10),
       pointsUsed: rewardPointsUsed,
       cashbackEarned: 0,
     },
-    status: 'pending',
+    status: 'confirmed',
   });
 
   const savedOrder = await order.save();
 
-  // Update user coins if used
-  if (rewardPointsUsed > 0) {
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { rewardPoints: -rewardPointsUsed }
-    });
-  }
-
-  // No immediate cashback for COD at placement; can be added upon delivery if needed
+  // User points will be updated automatically by Transaction pre-save middleware
+  // No immediate manual update needed here
 
   // Create transaction entries for COD order placement
   try {
-    // Record the purchase (money) — category 'purchase'. Using type 'bonus' as a neutral monetary record.
+    // Record payment for COD as an admin-visible transaction
     await Transaction.create({
       user: req.user._id,
       order: savedOrder._id,
-      type: 'bonus',
+      type: 'purchase',
       category: 'purchase',
       amount: total,
       description: `Order placed (COD) - ${savedOrder.orderNumber}`,
+      reference: savedOrder.orderNumber,
       points: { balance: 0 },
-      status: 'completed'
+      status: 'completed',
+      metadata: { source: 'purchase' }
     });
 
     // Record points redemption if user used points (category 'points')
@@ -226,9 +281,54 @@ export const createCodOrder = asyncHandler(async (req, res) => {
         source: 'purchase'
       });
     }
+    // Record reward points earning for COD (10% cashback)
+    const pointsToCredit = Math.round(total * 0.10);
+    if (pointsToCredit > 0) {
+      await Transaction.createEarning({
+        userId: req.user._id,
+        orderId: savedOrder._id,
+        category: 'points',
+        amount: pointsToCredit,
+        points: pointsToCredit,
+        description: `Earned ${pointsToCredit} points for ${savedOrder.orderNumber}`,
+        reference: savedOrder.orderNumber,
+        source: 'purchase'
+      });
+    }
+
+    // Record coupon usage (one-time tracking) if a coupon was applied
+    if (discount > 0 && coupon?.code) {
+      // Idempotency: ensure not duplicated for same order
+      const existingCouponTx = await Transaction.findOne({
+        user: req.user._id,
+        order: savedOrder._id,
+        'metadata.couponId': String(coupon._id),
+        'metadata.source': 'coupon'
+      });
+      if (!existingCouponTx) {
+        await Transaction.create({
+          user: req.user._id,
+          order: savedOrder._id,
+          type: 'redeem',
+          category: 'promotion',
+          amount: discount,
+          description: `Used coupon '${coupon.code}'`,
+          reference: savedOrder.orderNumber,
+          points: { balance: 0 },
+          status: 'completed',
+          metadata: { source: 'coupon', couponId: String(coupon._id), code: coupon.code }
+        });
+      }
+    }
   } catch (txErr) {
     console.warn('COD transaction creation warning:', txErr?.message || txErr);
   }
+
+  // Fire-and-forget SMS (no await needed to avoid blocking response)
+  try {
+    const customerName = `${addressDoc.first_name ?? ''} ${addressDoc.last_name ?? ''}`.trim();
+    sendOrderConfirmationSMS({ phone: addressDoc.phone, customerName, orderNumber });
+  } catch {}
 
   res.status(201).json({
     success: true,
@@ -379,6 +479,14 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
       tax,
       total,
     },
+    // Persist coupon info for later verification/usage tracking
+    coupon: coupon ? {
+      id: coupon._id || coupon.id,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      usageLimit: coupon.usageLimit
+    } : null,
     payment: {
       method: 'online',
       status: 'pending',
@@ -386,7 +494,8 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
       gatewayResponse: { razorpayOrderId: razorpayOrder.id },
     },
     shipping: { method: shippingMethodEnum },
-    rewards: { pointsEarned: Math.round(subtotal * 0.01), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
+    // Rewards: 10% of order total
+    rewards: { pointsEarned: Math.round(total * 0.10), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
     status: 'pending',
   });
 
@@ -437,36 +546,41 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   order.payment.razorpayPaymentId = razorpay_payment_id;
   order.payment.razorpayOrderId = razorpay_order_id;
   order.payment.razorpaySignature = razorpay_signature;
-  order.status = 'processing';
+  // Move order from pending to confirmed immediately after successful payment
+  order.status = 'confirmed';
   await order.save();
 
-  // Update user coins and create transactions
+  // Calculate points for transactions (user balance will be updated by Transaction middleware)
   const pointsToDeduct = Math.max(0, order.pricing?.rewardPointsUsed || 0);
   const pointsToCredit = Math.max(0, order.rewards?.pointsEarned || 0);
 
-  if (pointsToDeduct > 0) {
-    await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: -pointsToDeduct } });
-  }
-  if (pointsToCredit > 0) {
-    await User.findByIdAndUpdate(req.user.id, { $inc: { rewardPoints: pointsToCredit } });
-  }
-
   // Create transaction entries after successful online payment verification
   try {
-    // Record the purchase payment (category 'purchase')
-    await Transaction.create({
+    // Admin-visible payment record (idempotent by payment id)
+    const existingPayment = await Transaction.findOne({
       user: req.user._id,
       order: order._id,
-      type: 'bonus',
+      type: 'purchase',
       category: 'purchase',
-      amount: order.pricing?.total || 0,
-      description: `Payment captured - ${order.orderNumber}`,
-      reference: razorpay_payment_id,
-      points: { balance: 0 },
-      status: 'completed'
+      reference: razorpay_payment_id
     });
 
-    // Record points redemption if any (category 'points')
+    if (!existingPayment) {
+      await Transaction.create({
+        user: req.user._id,
+        order: order._id,
+        type: 'purchase',
+        category: 'purchase',
+        amount: order.pricing?.total || 0,
+        description: `Payment captured - ${order.orderNumber}`,
+        reference: razorpay_payment_id,
+        points: { balance: 0 },
+        status: 'completed',
+        metadata: { source: 'purchase' }
+      });
+    }
+
+    // Points redemption (if any)
     if (pointsToDeduct > 0) {
       await Transaction.createRedemption({
         userId: req.user._id,
@@ -480,7 +594,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
       });
     }
 
-    // Record points earning if any (category 'points')
+    // Points earning (cashback)
     if (pointsToCredit > 0) {
       await Transaction.createEarning({
         userId: req.user._id,
@@ -493,9 +607,39 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
         source: 'purchase'
       });
     }
+
+    // Coupon usage record after successful online payment
+    if (order?.pricing?.discount > 0 && order?.coupon?.code) {
+      const existingCouponTx = await Transaction.findOne({
+        user: req.user._id,
+        order: order._id,
+        'metadata.couponId': String(order.coupon.id),
+        'metadata.source': 'coupon'
+      });
+      if (!existingCouponTx) {
+        await Transaction.create({
+          user: req.user._id,
+          order: order._id,
+          type: 'redeem',
+          category: 'promotion',
+          amount: order.pricing.discount,
+          description: `Used coupon '${order.coupon.code}'`,
+          reference: razorpay_payment_id,
+          points: { balance: 0 },
+          status: 'completed',
+          metadata: { source: 'coupon', couponId: String(order.coupon.id), code: order.coupon.code }
+        });
+      }
+    }
   } catch (txErr) {
     console.warn('Online payment transaction creation warning:', txErr?.message || txErr);
   }
+
+  // Fire-and-forget SMS on successful online payment
+  try {
+    const fullName = `${order?.shippingAddress?.first_name ?? ''} ${order?.shippingAddress?.last_name ?? ''}`.trim();
+    sendOrderConfirmationSMS({ phone: order?.shippingAddress?.phone, customerName: fullName, orderNumber: order.orderNumber });
+  } catch {}
 
   res.json({
     success: true,

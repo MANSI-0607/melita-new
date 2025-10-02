@@ -9,11 +9,13 @@ function buildUrl(path: string): string {
 }
 
 async function request<T>(method: HttpMethod, path: string, body?: any, init?: RequestInit): Promise<T> {
-  // Check for admin token first, then regular user token
+  // Choose token based on route namespace: use admin token only for /admin endpoints
   const adminToken = localStorage.getItem('melita_admin_token');
   const userToken = localStorage.getItem('melita_token');
-  const token = adminToken || userToken;
-  
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const isAdminPath = normalizedPath.startsWith('/admin');
+  const token = isAdminPath ? (adminToken || userToken) : (userToken || adminToken);
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

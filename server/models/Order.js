@@ -195,6 +195,29 @@ const orderSchema = new mongoose.Schema(
         min: 0
       }
     },
+    coupon: {
+      id: {
+        type: String,
+        required: false
+      },
+      code: {
+        type: String,
+        required: false
+      },
+      type: {
+        type: String,
+        enum: ['fixed', 'percentage'],
+        required: false
+      },
+      value: {
+        type: Number,
+        required: false
+      },
+      usageLimit: {
+        type: Number,
+        required: false
+      }
+    },
     notes: {
       customer: String,
       internal: String
@@ -228,9 +251,9 @@ orderSchema.index({ 'payment.status': 1 });
 // Virtual for order status display
 orderSchema.virtual('statusDisplay').get(function() {
   const statusMap = {
-    'pending': 'Order Placed',
-    'confirmed': 'Confirmed',
-    'processing': 'Processing',
+    'pending': 'Payment Failed/Pending', // For failed transactions or incomplete payments
+    'confirmed': 'Order Confirmed',      // Both COD and successful online payments
+    'processing': 'Processing',          // Order being prepared
     'shipped': 'Shipped',
     'delivered': 'Delivered',
     'cancelled': 'Cancelled',

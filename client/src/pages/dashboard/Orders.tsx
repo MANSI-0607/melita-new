@@ -300,7 +300,7 @@ export default function Orders() {
                           {order.items.slice(0, 3).map((item, index) => (
                             <div key={index} className="flex items-center space-x-2 bg-muted rounded-lg p-2">
                               <img
-                                src={item.image?.startsWith('/uploads') ? `${api.baseUrl}${item.image}` : item.image}
+                                src={item.image?.startsWith('/') ? `${api.baseUrl}${item.image}` : item.image}
                                 alt={item.name}
                                 className="w-10 h-10 rounded object-cover"
                                 loading="lazy"
@@ -340,7 +340,7 @@ export default function Orders() {
                       >
                         View Details
                       </Button>
-                      {(order.status === 'pending' || order.status === 'confirmed') && (
+                      {/* {(order.status === 'pending' || order.status === 'confirmed') && (
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -358,7 +358,7 @@ export default function Orders() {
                         >
                           Cancel Order
                         </Button>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </CardContent>

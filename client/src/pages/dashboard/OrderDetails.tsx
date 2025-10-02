@@ -209,7 +209,7 @@ export default function OrderDetails() {
               <div key={idx} className="flex items-center justify-between p-3 rounded-md border">
                 <div className="flex items-center gap-3">
                   <img
-                    src={item.image?.startsWith('/uploads') ? `${api.baseUrl}${item.image}` : item.image}
+                    src={item.image?.startsWith('/') ? `${api.baseUrl}${item.image}` : item.image}
                     alt={item.name}
                     className="w-12 h-12 rounded object-cover"
                     loading="lazy"

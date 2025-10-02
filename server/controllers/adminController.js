@@ -242,7 +242,7 @@ export const getOrders = async (req, res) => {
 export const getProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 50; // Increased limit for admin
     const skip = (page - 1) * limit;
     const { category, search, status = 'all' } = req.query;
 
@@ -251,7 +251,7 @@ export const getProducts = async (req, res) => {
     if (status === 'active') filter.isActive = true;
     else if (status === 'inactive') filter.isActive = false;
     
-    if (category) filter.category = category;
+    if (category && category !== 'all') filter.category = category;
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -263,8 +263,7 @@ export const getProducts = async (req, res) => {
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .select('name slug price originalPrice category inventory.stock isActive isFeatured createdAt ratings');
+      .limit(limit);
 
     const totalProducts = await Product.countDocuments(filter);
     const totalPages = Math.ceil(totalProducts / limit);
@@ -862,6 +861,470 @@ export const deductPoints = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to deduct points'
+    });
+  }
+};
+
+// Create new product
+export const createProduct = async (req, res) => {
+  try {
+    const productData = req.body;
+
+    // Generate slug from name if not provided
+    if (!productData.slug && productData.name) {
+      productData.slug = productData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+
+    // Ensure required fields have defaults
+    if (!productData.inventory) {
+      productData.inventory = {
+        stock: 0,
+        lowStockThreshold: 10,
+        trackInventory: true
+      };
+    }
+
+    if (!productData.ratings) {
+      productData.ratings = {
+        average: 0,
+        count: 0
+      };
+    }
+
+    const product = new Product(productData);
+    await product.save();
+
+    res.status(201).json({
+      success: true,
+      data: product,
+      message: 'Product created successfully'
+    });
+
+  } catch (error) {
+    console.error('Create product error:', error);
+    
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product with this slug already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
+      error: error.message
+    });
+  }
+};
+
+// Update product status (active/inactive)
+export const updateProductStatus = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { isActive } = req.body;
+
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { isActive },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: product,
+      message: `Product ${isActive ? 'activated' : 'deactivated'} successfully`
+    });
+
+  } catch (error) {
+    console.error('Update product status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product status'
+    });
+  }
+};
+
+// Update user status (active/inactive)
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isActive },
+      { new: true }
+    ).select('-otpCode -otpExpires -otpSendCount -otpVerifyAttempts');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user,
+      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
+    });
+
+  } catch (error) {
+    console.error('Update user status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user status'
+    });
+  }
+};
+
+// Update review approval status
+export const updateReviewApproval = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { isApproved } = req.body;
+
+    const review = await Review.findByIdAndUpdate(
+      reviewId,
+      { isApproved },
+      { new: true }
+    ).populate('user', 'name email').populate('product', 'name slug');
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Review not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: review,
+      message: `Review ${isApproved ? 'approved' : 'unapproved'} successfully`
+    });
+
+  } catch (error) {
+    console.error('Update review approval error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update review approval'
+    });
+  }
+};
+
+// Get users with enhanced data
+export const getUsersEnhanced = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const { search, status = 'all' } = req.query;
+
+    // Build filter
+    const filter = {};
+    if (status === 'active') filter.isActive = true;
+    else if (status === 'inactive') filter.isActive = false;
+    
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get users with order stats
+    const users = await User.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'orders'
+        }
+      },
+      {
+        $addFields: {
+          orderCount: { $size: '$orders' },
+          totalSpent: {
+            $sum: {
+              $map: {
+                input: '$orders',
+                as: 'order',
+                in: '$$order.pricing.total'
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          otpCode: 0,
+          otpExpires: 0,
+          otpSendCount: 0,
+          otpVerifyAttempts: 0,
+          orders: 0
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]);
+
+    const totalUsers = await User.countDocuments(filter);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalUsers,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get users enhanced error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users'
+    });
+  }
+};
+
+// Get orders with enhanced data
+export const getOrdersEnhanced = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const { status, search } = req.query;
+
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+    
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const orders = await Order.find(filter)
+      .populate('user', 'name phone email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalOrders = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    res.json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get orders enhanced error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders'
+    });
+  }
+};
+
+// Get transactions with enhanced data
+export const getTransactionsEnhanced = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const { type, category, search } = req.query;
+
+    const filter = {};
+    if (type && type !== 'all') filter.type = type;
+    if (category && category !== 'all') filter.category = category;
+    
+    if (search) {
+      // We'll need to populate first, then filter, so let's use aggregation
+      const transactions = await Transaction.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'user'
+          }
+        },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: 'order',
+            foreignField: '_id',
+            as: 'order'
+          }
+        },
+        {
+          $match: {
+            $or: [
+              { 'user.name': { $regex: search, $options: 'i' } },
+              { 'user.email': { $regex: search, $options: 'i' } },
+              { description: { $regex: search, $options: 'i' } },
+              { 'order.orderNumber': { $regex: search, $options: 'i' } }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            user: { $arrayElemAt: ['$user', 0] },
+            order: { $arrayElemAt: ['$order', 0] }
+          }
+        },
+        {
+          $project: {
+            'user.otpCode': 0,
+            'user.otpExpires': 0,
+            'user.otpSendCount': 0,
+            'user.otpVerifyAttempts': 0
+          }
+        },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      ]);
+
+      const totalTransactions = await Transaction.countDocuments({
+        ...filter,
+        $or: [
+          { description: { $regex: search, $options: 'i' } }
+        ]
+      });
+
+      const totalPages = Math.ceil(totalTransactions / limit);
+
+      return res.json({
+        success: true,
+        data: {
+          transactions,
+          pagination: {
+            currentPage: page,
+            totalPages,
+            totalTransactions,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
+          }
+        }
+      });
+    }
+
+    const transactions = await Transaction.find(filter)
+      .populate('user', 'name phone email')
+      .populate('order', 'orderNumber status')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalTransactions = await Transaction.countDocuments(filter);
+    const totalPages = Math.ceil(totalTransactions / limit);
+
+    res.json({
+      success: true,
+      data: {
+        transactions,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalTransactions,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get transactions enhanced error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch transactions'
+    });
+  }
+};
+
+// Get reviews with enhanced data
+export const getReviewsEnhanced = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const { status, search } = req.query;
+
+    const filter = {};
+    if (status === 'approved') filter.isApproved = true;
+    else if (status === 'pending') filter.isApproved = false;
+    else if (status === 'verified') filter.isVerified = true;
+    
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { comment: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const reviews = await Review.find(filter)
+      .populate('user', 'name email')
+      .populate('product', 'name slug')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalReviews = await Review.countDocuments(filter);
+    const totalPages = Math.ceil(totalReviews / limit);
+
+    res.json({
+      success: true,
+      data: {
+        reviews,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalReviews,
+          hasNext: page < totalPages,
+          hasPrev: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get reviews enhanced error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch reviews'
     });
   }
 };

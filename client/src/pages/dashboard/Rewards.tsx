@@ -117,7 +117,7 @@ export default function Rewards() {
         </CardHeader>
         <CardContent>
           {summary ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-6">
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-bold">{summary.totalPointsEarned}</span>
                 <span className="text-sm text-muted-foreground">Points Earned</span>
@@ -126,10 +126,7 @@ export default function Rewards() {
                 <span className="text-2xl font-bold">{summary.totalPointsRedeemed}</span>
                 <span className="text-sm text-muted-foreground">Points Redeemed</span>
               </div>
-              <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold">{summary.transactionCount}</span>
-                <span className="text-sm text-muted-foreground">Transactions</span>
-              </div>
+             
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-12">No summary available.</p>

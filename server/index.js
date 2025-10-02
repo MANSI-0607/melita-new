@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
@@ -13,7 +14,11 @@ import rewardRoutes from './routes/rewards.js';
 import reviewRoutes from './routes/reviews.js';
 import checkoutRoutes from './routes/checkout.js';
 import adminRoutes from './routes/admin.js';
+import { fileURLToPath } from "url";
 
+// __dirname replacement for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config();
 connectDB();
 
@@ -41,9 +46,7 @@ app.use(cors({
   },
   credentials: true,
 }));
-
-// Serve static files for product/uploads
-app.use('/uploads', express.static('uploads'));
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 app.get("/", (req, res) => {
   res.json({ 

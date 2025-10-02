@@ -14,7 +14,7 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['earn', 'redeem', 'expire', 'refund', 'bonus', 'penalty'],
+      enum: ['earn', 'redeem', 'expire', 'refund', 'bonus', 'penalty', 'purchase'],
       required: true
     },
     category: {
@@ -66,7 +66,7 @@ const transactionSchema = new mongoose.Schema(
     metadata: {
       source: {
         type: String,
-        enum: ['purchase', 'referral', 'review', 'signup', 'bonus', 'admin', 'system'],
+        enum: ['purchase', 'referral', 'review', 'signup', 'bonus', 'admin', 'system', 'coupon'],
         required: true
       },
       campaignId: String,
@@ -77,7 +77,16 @@ const transactionSchema = new mongoose.Schema(
         min: 0
       },
       originalAmount: Number,
-      discountApplied: Number
+      discountApplied: Number,
+      // Coupon tracking
+      couponId: {
+        type: String,
+        required: false
+      },
+      code: {
+        type: String,
+        required: false
+      }
     },
     expiresAt: {
       type: Date,
@@ -101,6 +110,8 @@ transactionSchema.index({ user: 1, type: 1 });
 transactionSchema.index({ order: 1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ expiresAt: 1 });
+// For one-time coupon usage checks
+transactionSchema.index({ user: 1, 'metadata.couponId': 1 });
 
 // Virtual for transaction display
 transactionSchema.virtual('displayAmount').get(function() {
@@ -155,12 +166,13 @@ transactionSchema.pre('save', async function(next) {
 
 // Static method to get user's transaction history
 transactionSchema.statics.findByUser = function(userId, options = {}) {
-  const { type, category, limit = 50, skip = 0 } = options;
-  
+  const { type, category, excludeType, limit = 50, skip = 0 } = options;
+
   const query = { user: userId };
   if (type) query.type = type;
+  if (excludeType) query.type = { ...(query.type || {}), $ne: excludeType };
   if (category) query.category = category;
-  
+
   return this.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)

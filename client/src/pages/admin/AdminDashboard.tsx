@@ -13,376 +13,19 @@ import {
   LogOut,
   BarChart3,
   Calendar,
-  DollarSign,
-  Eye,
-  Edit,
-  Trash2
+  DollarSign
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Management Components
-const ProductManagement = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({ search: '', category: '', status: 'all' });
+// Import admin components
+import AdminProducts from './components/AdminProducts';
+import AdminOrders from './components/AdminOrders';
+import AdminUsers from './components/AdminUsers';
+import AdminTransactions from './components/AdminTransactions';
+import AdminReviews from './components/AdminReviews';
+import AdminSettings from './components/AdminSettings';
 
-  useEffect(() => {
-    fetchProducts();
-  }, [currentPage, filters]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '10',
-        ...filters
-      });
-      const response = await api.get<any>(`/admin/products?${params}`);
-      if (response.success) {
-        setProducts(response.data.products);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleProductStatus = async (productId: string) => {
-    try {
-      await api.patch(`/admin/products/${productId}/toggle-status`, {});
-      fetchProducts();
-    } catch (error) {
-      console.error('Error toggling product status:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold text-gray-900">Product Management</h2>
-        <Button>Add New Product</Button>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="px-3 py-2 border rounded-md"
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            />
-            <select
-              className="px-3 py-2 border rounded-md"
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Products Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center">Loading products...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {products.map((product) => (
-                    <tr key={product._id}>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">{product.slug}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 capitalize">{product.category}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">₹{product.price}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{product.inventory?.stock || 0}</td>
-                      <td className="px-6 py-4">
-                        <Badge className={product.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {product.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => toggleProductStatus(product._id)}>
-                          {product.isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-const OrderManagement = () => {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<any>('/admin/orders?limit=20');
-      if (response.success) {
-        setOrders(response.data.orders);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, status: string) => {
-    try {
-      await api.patch(`/admin/orders/${orderId}/status`, { status });
-      fetchOrders();
-    } catch (error) {
-      console.error('Error updating order status:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">Order Management</h2>
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center">Loading orders...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order._id}>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">#{order.orderNumber}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{order.user?.name || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">₹{order.pricing?.total?.toFixed(2)}</td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={order.status}
-                          onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                          className="text-sm border rounded px-2 py-1"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-const UserManagement = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<any>('/admin/users?limit=20');
-      if (response.success) {
-        setUsers(response.data.users);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">User Management</h2>
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center">Loading users...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Points</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tier</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user._id}>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{user.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{user.phone}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{user.rewardPoints || 0}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 capitalize">{user.loyaltyTier}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-const TransactionManagement = () => {
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get<any>('/admin/transactions?limit=20');
-      if (response.success) {
-        setTransactions(response.data.transactions);
-      }
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">Transaction Management</h2>
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center">Loading transactions...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Points</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {transactions.map((transaction) => (
-                    <tr key={transaction._id}>
-                      <td className="px-6 py-4 text-sm text-gray-900">{transaction.user?.name || 'N/A'}</td>
-                      <td className="px-6 py-4">
-                        <Badge className={transaction.type === 'earn' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {transaction.type}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 capitalize">{transaction.category}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">₹{transaction.amount}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {transaction.points?.earned || transaction.points?.redeemed || 0}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
 
 interface AdminStats {
   totalUsers: number;
@@ -410,11 +53,11 @@ export default function AdminDashboard() {
 
   const sidebarItems: SidebarItem[] = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="h-4 w-4" /> },
-    { id: "products", label: "Products", icon: <Package className="h-4 w-4" />, count: stats?.totalProducts },
-    { id: "orders", label: "Orders", icon: <ShoppingBag className="h-4 w-4" />, count: stats?.totalOrders },
-    { id: "users", label: "Users", icon: <Users className="h-4 w-4" />, count: stats?.totalUsers },
-    { id: "transactions", label: "Transactions", icon: <DollarSign className="h-4 w-4" /> },
-    { id: "reviews", label: "Reviews", icon: <Star className="h-4 w-4" /> },
+    { id: "products", label: "Manage Products", icon: <Package className="h-4 w-4" />, count: stats?.totalProducts },
+    { id: "orders", label: "Manage Orders", icon: <ShoppingBag className="h-4 w-4" />, count: stats?.totalOrders },
+    { id: "users", label: "Manage Users", icon: <Users className="h-4 w-4" />, count: stats?.totalUsers },
+    { id: "transactions", label: "Manage Transactions", icon: <DollarSign className="h-4 w-4" /> },
+    { id: "reviews", label: "Manage Reviews", icon: <Star className="h-4 w-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
   ];
 
@@ -650,39 +293,17 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeSection === "products" && <ProductManagement />}
+          {activeSection === "products" && <AdminProducts />}
 
-          {activeSection === "orders" && <OrderManagement />}
+          {activeSection === "orders" && <AdminOrders />}
 
-          {activeSection === "users" && <UserManagement />}
+          {activeSection === "users" && <AdminUsers />}
 
-          {activeSection === "reviews" && (
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-gray-900">Review Management</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground py-8">
-                    Review management interface coming soon...
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {activeSection === "reviews" && <AdminReviews />}
 
-          {activeSection === "transactions" && <TransactionManagement />}
+          {activeSection === "transactions" && <AdminTransactions />}
 
-          {activeSection === "settings" && (
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-gray-900">Settings</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground py-8">
-                    Settings interface coming soon...
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {activeSection === "settings" && <AdminSettings />}
         </div>
       </div>
     </div>

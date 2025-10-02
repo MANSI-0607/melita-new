@@ -128,7 +128,7 @@ export async function sendOtp(req, res) {
 
     // Fast2SMS API Call using query string method
     const apiKey = FAST2SMS_API_KEY;
-    const templateId = process.env.FAST2SMS_TEMPLATE_ID 
+    const templateId = process.env.FAST2SMS_TEMPLATE_ID_LOGIN;
 
     const queryParams = new URLSearchParams({
       authorization: apiKey,

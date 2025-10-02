@@ -43,12 +43,19 @@ export const getTransactionHistory = async (req, res) => {
     const options = {
       type,
       category,
+      excludeType: 'purchase',
       limit: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit)
     };
 
     const transactions = await Transaction.findByUser(userId, options);
     const total = await Transaction.countDocuments({ user: userId });
+
+    // Disable caching so clients always receive fresh history
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
 
     res.json({
       success: true,

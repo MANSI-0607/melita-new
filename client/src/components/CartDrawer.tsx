@@ -99,7 +99,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <ShoppingBag className="w-16 h-16 text-gray-300 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
                   <p className="text-gray-500 mb-4">Add some products to get started!</p>
-                  <Button onClick={onClose} className="bg-[#1e4323] hover:bg-[#2d5a3a]">
+                  <Button onClick={() => {onClose(); navigate('/shop')}} className="bg-[#1e4323] hover:bg-[#2d5a3a]">
                     Continue Shopping
                   </Button>
                 </div>

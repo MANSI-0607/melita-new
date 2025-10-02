@@ -6,7 +6,7 @@ dotenv.config();
 
 const couponsData = [
   {
-    code: 'WELCOME10',
+    code: 'MELITA-WELCOME10',
     type: 'percentage',
     value: 10,
     isGlobal: true,
@@ -15,36 +15,36 @@ const couponsData = [
     minOrderAmount: 500,
     description: '10% off on first order'
   },
-  {
-    code: 'SAVE100',
-    type: 'fixed',
-    value: 100,
-    isGlobal: true,
-    isActive: true,
-    usageLimit: 1,
-    minOrderAmount: 1000,
-    description: '₹100 off on orders above ₹1000'
-  },
-  {
-    code: 'FREESHIP',
-    type: 'fixed',
-    value: 99,
-    isGlobal: true,
-    isActive: true,
-    usageLimit: 0, // Unlimited
-    minOrderAmount: 500,
-    description: 'Free shipping on orders above ₹500'
-  },
-  {
-    code: 'NEWUSER',
-    type: 'percentage',
-    value: 15,
-    isGlobal: true,
-    isActive: true,
-    usageLimit: 1,
-    minOrderAmount: 300,
-    description: '15% off for new users'
-  }
+  // {
+  //   code: 'SAVE100',
+  //   type: 'fixed',
+  //   value: 100,
+  //   isGlobal: true,
+  //   isActive: true,
+  //   usageLimit: 1,
+  //   minOrderAmount: 1000,
+  //   description: '₹100 off on orders above ₹1000'
+  // },
+  // {
+  //   code: 'FREESHIP',
+  //   type: 'fixed',
+  //   value: 99,
+  //   isGlobal: true,
+  //   isActive: true,
+  //   usageLimit: 0, // Unlimited
+  //   minOrderAmount: 500,
+  //   description: 'Free shipping on orders above ₹500'
+  // },
+  // {
+  //   code: 'NEWUSER',
+  //   type: 'percentage',
+  //   value: 15,
+  //   isGlobal: true,
+  //   isActive: true,
+  //   usageLimit: 1,
+  //   minOrderAmount: 300,
+  //   description: '15% off for new users'
+  // }
 ];
 
 const seedCoupons = async () => {

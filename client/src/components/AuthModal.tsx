@@ -76,7 +76,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Failed to send OTP');
-      setMessage('OTP sent. Please check your phone (console in dev).');
+      setMessage('OTP sent. Please check your phone.');
       setStep('verify');
     } catch (e: any) {
       setError(e.message || 'Something went wrong');
