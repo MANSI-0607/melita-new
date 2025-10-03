@@ -79,7 +79,16 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
       setMessage('OTP sent. Please check your phone.');
       setStep('verify');
     } catch (e: any) {
-      setError(e.message || 'Something went wrong');
+      const msg = e?.message || 'Something went wrong';
+      // If login flow and server says user not registered, switch to signup
+      if (!isSignup && /not\s*registered|user\s*not\s*found|no\s*account/i.test(msg)) {
+        setView('signup');
+        setStep('enter');
+        setError(null);
+        setMessage('No account found for this number. Create an account to continue.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,7 +130,15 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
       setMessage('Logged in successfully!');
       onClose();
     } catch (e: any) {
-      setError(e.message || 'Something went wrong');
+      const msg = e?.message || 'Something went wrong';
+      if (!isSignup && /not\s*registered|user\s*not\s*found|no\s*account/i.test(msg)) {
+        setView('signup');
+        setStep('enter');
+        setError(null);
+        setMessage('No account found for this number. Create an account to continue.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

@@ -48,7 +48,13 @@ const Login = () => {
       if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
       setStep('verify');
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      const msg = err?.message || 'Something went wrong';
+      if (/not\s*registered|user\s*not\s*found|no\s*account/i.test(msg)) {
+        // Send the user to signup if no account exists
+        navigate('/signup', { state: { phone: normalizePhone(phone) } });
+        return;
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -110,7 +116,7 @@ const Login = () => {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="9876543210"
+                  placeholder="Your phone number"
                   required
                 />
               </div>

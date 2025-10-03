@@ -139,7 +139,7 @@ const Signup = () => {
                 type="tel"
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="9876543210"
+                placeholder="Your Phone Number"
                 maxLength={10}
                 required
               />

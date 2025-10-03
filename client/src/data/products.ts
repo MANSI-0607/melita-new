@@ -221,7 +221,7 @@ type ServerProduct = {
   benefits?: Array<string | { image?: string; text?: string }>;
 };
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE =  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 function formatCurrency(val: number | string | undefined): string {
   if (val === undefined || val === null) return '' as unknown as string;

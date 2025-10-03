@@ -54,7 +54,7 @@ const Checkout: React.FC = () => {
   const { toast } = useToast();
 
   // API base for production readiness (fallback to local backend in dev)
-  const API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const api = (path: string) => {
     if (!path.startsWith('/')) path = `/${path}`;
     return API_BASE ? `${API_BASE}${path}` : path;
