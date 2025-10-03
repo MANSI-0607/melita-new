@@ -157,20 +157,19 @@ const Cleanser = () => {
             <div className="lg:col-span-3 bg-gray-100 rounded-2xl p-6 md:p-10 shadow-lg min-h-[250px]">
               <h3 className="text-xl md:text-3xl font-headingTwo font-medium text-gray-900 mb-4">{currentIngredient?.title || selectedIngredient}</h3>
               <p className="text-gray-700 mb-8 leading-relaxed">{currentIngredient?.description}</p>
-              <div>
-                <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
-                <div className="space-y-3">
-                  {(currentIngredient?.benefits || []).map((benefit: string, idx: number) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 leading-relaxed">{benefit}</span>
-                    </div>
-                  ))}
-                  {(!currentIngredient?.benefits || currentIngredient.benefits.length === 0) && (
-                    <span className="text-sm text-gray-500">No specific benefits listed.</span>
-                  )}
-                </div>
-              </div>
+              {currentIngredient?.benefits && currentIngredient.benefits.length > 0 && (
+                <>
+                  <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
+                  <div className="space-y-3">
+                    {currentIngredient.benefits.map((benefit: string, idx: number) => (
+                      <div key={idx} className="flex items-start space-x-3">
+                        <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-gray-700 leading-relaxed">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

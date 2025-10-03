@@ -142,10 +142,7 @@ const productSchema = new mongoose.Schema(
     },
     tags: [String],
     relatedProducts: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product'
-      }
+   String
     ]
   },
   {

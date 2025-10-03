@@ -37,11 +37,11 @@ const Essence = () => {
   } as const;
 
   const features = [
-    { text: "Lightweight Texture", icon: Feather },
+    { text: "Feels like water, works like a powerhouse ", icon: Feather },
+    { text: "Quenches your skin's thirst", icon: Sparkles },
     { text: "No Harsh Additives", icon: ShieldCheck },
-    { text: "Instant Refreshment", icon: Sparkles },
-    { text: "pH Balanced Formula", icon: Scale },
-    { text: "Layers Well With Routine", icon: Palette },
+    { text: "Pairs perfectly with everything", icon: Check },
+    { text: "Clinically tested", icon: Palette },
   ];
 
   const [selectedIngredient, setSelectedIngredient] = useState<string>("Rice Water");
@@ -147,22 +147,19 @@ const Essence = () => {
               <div className="bg-white rounded-2xl p-8 shadow-sm min-h-[320px] transition-all duration-300">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">{currentIngredient?.title || selectedIngredient}</h3>
                 <p className="text-gray-700 mb-8 leading-relaxed">{currentIngredient?.description}</p>
-                <div>
+                {currentIngredient?.benefits && currentIngredient.benefits.length > 0 && (
                   <>
                     <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
                     <div className="space-y-3">
-                      {(currentIngredient?.benefits || []).map((benefit: string, idx: number) => (
+                      {currentIngredient.benefits.map((benefit: string, idx: number) => (
                         <div key={idx} className="flex items-start space-x-3">
                           <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                           <span className="text-gray-700 leading-relaxed">{benefit}</span>
                         </div>
                       ))}
-                      {(!currentIngredient?.benefits || currentIngredient.benefits.length === 0) && (
-                        <span className="text-sm text-gray-500">No specific benefits listed.</span>
-                      )}
                     </div>
                   </>
-                </div>
+                )}
               </div>
             </div>
           </div>

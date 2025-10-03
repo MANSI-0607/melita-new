@@ -171,3 +171,80 @@ export const products: Product[] = [
 
 export const getProductById = (id: number) => products.find(p => p.id === id);
 export const getProductBySlug = (slug: string) => products.find(p => p.slug === slug);
+
+// ---------------- Live-field helpers (merge only selected fields from backend) ----------------
+
+type ServerProduct = {
+  _id: string;
+  slug: string;
+  name: string;
+  price: number | string;
+  originalPrice: number | string;
+  description?: string;
+  ratings?: { average?: number; count?: number };
+  benefits?: Array<string | { image?: string; text?: string }>;
+};
+
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+
+function formatCurrency(val: number | string | undefined): string {
+  if (val === undefined || val === null) return '' as unknown as string;
+  if (typeof val === 'number') return `₹${val.toFixed(2)}`;
+  // if already string, return as-is
+  return String(val);
+}
+
+function mergeSelectedFields(staticProduct: Product, server: ServerProduct): Product {
+  const rating = server.ratings?.average ?? staticProduct.rating ?? 0;
+  const reviews = server.ratings?.count ?? staticProduct.reviews ?? 0;
+  const benefits = Array.isArray(server.benefits)
+    ? server.benefits
+        .map((b: any) => (typeof b === 'string' ? b : b?.text))
+        .filter(Boolean)
+    : staticProduct.benefits;
+
+  return {
+    ...staticProduct,
+    price: formatCurrency(server.price) || staticProduct.price,
+    originalPrice: formatCurrency(server.originalPrice) || staticProduct.originalPrice,
+    rating: typeof rating === 'number' ? rating : staticProduct.rating,
+    reviews: typeof reviews === 'number' ? reviews : staticProduct.reviews,
+    description: server.description ?? staticProduct.description,
+    benefits: benefits ?? staticProduct.benefits,
+  };
+}
+
+export async function getProductBySlugLive(slug: string): Promise<Product | undefined> {
+  const base = getProductBySlug(slug);
+  if (!base) return undefined;
+  try {
+    const res = await fetch(`${API_BASE}/products/${slug}`);
+    if (!res.ok) return base;
+    const json = await res.json();
+    const serverProduct: ServerProduct | undefined = json?.data;
+    if (!serverProduct) return base;
+    return mergeSelectedFields(base, serverProduct);
+  } catch {
+    return base;
+  }
+}
+
+export async function getProductsLive(): Promise<Product[]> {
+  // Merge per item by slug to ensure we only override needed fields
+  const merged: Product[] = await Promise.all(
+    products.map(async (p) => {
+      try {
+        const res = await fetch(`${API_BASE}/products/${p.slug}`);
+        if (!res.ok) return p;
+        const json = await res.json();
+        const serverProduct: ServerProduct | undefined = json?.data;
+        if (!serverProduct) return p;
+        return mergeSelectedFields(p, serverProduct);
+      } catch {
+        return p;
+      }
+    })
+  );
+  return merged;
+}
+
