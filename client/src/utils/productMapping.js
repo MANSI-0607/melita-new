@@ -7,7 +7,7 @@ export const getBackendProductIdFromSlug = async (slug) => {
   if (productIdCache[slug]) return productIdCache[slug];
 
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const res = await fetch(`${baseUrl}/products/slug/${encodeURIComponent(slug)}`);
 
     const contentType = res.headers.get('content-type') || '';
