@@ -5,7 +5,7 @@ import TopStrip from '@/components/TopStrip';
 // Assets
 // import heroVideo from '@/assets/about/hero.mp4';
 // import heroVideoMob from '@/assets/about/heroMob.mp4';
-//import heroPoster from '@/assets/about/hero-thumb.png';
+
 
 import banner1 from '@/assets/about/banner1.jpg';
 import banner2 from '@/assets/about/banner2.jpg';
@@ -15,7 +15,7 @@ import banner4 from '@/assets/about/banner4.jpg';
 import foundersImg from '@/assets/about/founders.png';
 
 // import ingredientVideo from '@/assets/about/ingredient.mp4';
-// import ingredientVideoMob from '@/assets/about/ingredientMob.mp4';
+import ingredientVideoMob from '@/assets/about/ingredientMob.mp4';
 
 import footerBannerDesktop from '@/assets/about/footerBannerNew.png';
 import footerBannerMob from '@/assets/about/footerBannerMob.png';
@@ -35,7 +35,7 @@ const About = () => {
           <video
             className="absolute inset-0 w-full h-full object-cover"
             //src={heroVideo}
-            //poster={heroPoster}
+            poster="/hero-thumb.png"
             autoPlay
             muted
             loop
@@ -149,7 +149,7 @@ const About = () => {
           <div className="w-full h-[500px] mx-auto text-center">
             <div className="aspect-video w-full h-full mx-auto overflow-hidden shadow-lg">
               <video
-                //src={ingredientVideoMob}
+                src="/ingredientMob.mp4"
                 autoPlay
                 muted
                 loop
