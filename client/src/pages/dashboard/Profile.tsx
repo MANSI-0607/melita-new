@@ -143,7 +143,7 @@ export default function Profile() {
       </form>
 
       {/* Change Password Form */}
-      <form onSubmit={handleUpdatePassword}>
+      {/* <form onSubmit={handleUpdatePassword}>
         <Card className="border-border bg-card shadow-soft">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
@@ -196,7 +196,7 @@ export default function Profile() {
             </Button>
           </CardContent>
         </Card>
-      </form>
+      </form> */}
     </div>
   );
 }

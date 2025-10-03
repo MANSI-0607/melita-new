@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TopStrip from '@/components/TopStrip';
 import { Button } from '@/components/ui/button';
-import { products, getProductBySlug } from '@/data/products';
+import { products, getProductBySlugLive } from '@/data/products';
 import { Star, X } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AddToCartButton from '@/components/AddToCartButton';
@@ -17,10 +17,26 @@ import active from '@/assets/featues/Active.png';
 
 const ProductPage = ({ slug }) => {
   const navigate = useNavigate();
-  const product = useMemo(() => getProductBySlug(slug), [slug]);
-  const [activeImage, setActiveImage] = useState(product?.gallery?.[0] ?? product?.image ?? null);
+  const [product, setProduct] = useState<any | null>(null);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [currentVideoSrc, setCurrentVideoSrc] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getProductBySlugLive(slug)
+      .then((p) => {
+        if (!mounted) return;
+        setProduct(p || null);
+        if (p) setActiveImage(p.gallery?.[0] ?? p.image ?? null);
+      })
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
 
   const marqueeItems = [
     {
@@ -60,6 +76,19 @@ const ProductPage = ({ slug }) => {
       ),
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TopStrip />
+        <Header />
+        <main className="container mx-auto px-4 py-16">
+          <p className="text-center">Loading product...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -235,7 +264,12 @@ const ProductPage = ({ slug }) => {
             {/* Video Section */}
             {product.videos && product.videos.length > 0 && (
               <section className="mt-8 px-4">
-                <div className="grid grid-cols-3 gap-2 sm:flex sm:overflow-x-auto sm:gap-4 sm:p-2 sm:scrollbar-hide">
+                <div className={`grid gap-2 sm:gap-4 ${
+                  product.videos.length === 1 ? 'grid-cols-1' :
+                  product.videos.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                  product.videos.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                  'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                }`}>
                   {product.videos.map((vid, index) => (
                     <div
                       key={index}
@@ -243,11 +277,12 @@ const ProductPage = ({ slug }) => {
                       onClick={() => handleVideoClick(vid)}
                     >
                       <video
-                        autoPlay={false}
+                        autoPlay={true}
                         className="aspect-[9/16] w-full rounded-2xl"
                         muted
                         playsInline
                         loop
+                        preload="metadata"
                       >
                         <source src={vid} type="video/mp4" />
                         Your browser does not support the video tag.

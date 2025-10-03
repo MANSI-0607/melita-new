@@ -2,7 +2,7 @@ import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
 import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
-import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette, Droplets, Heart } from "lucide-react";
+import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette, Droplets, Heart, Sun } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
 import whyLoveImg from '@/assets/product_img/dryskinwhylove.jpg';
 import who from '@/assets/product_img/dryskinwho.jpg';
@@ -30,11 +30,11 @@ const DrySkinDailyEssentials = () => {
   } as const;
 
   const features = [
-    { text: "Daily Hydration", icon: Droplets },
-    { text: "Barrier Friendly", icon: ShieldCheck },
-    { text: "Visible Comfort", icon: Heart },
-    { text: "Balanced Finish", icon: Scale },
-    { text: "Layer-Friendly", icon: Check },
+    { text: "Instantly relieves tightness and dryness", icon: Droplets },
+    { text: "Skin feels soft, calm, and comforted all day", icon: Heart },
+    { text: "Lightweight layers that absorb easily", icon: Feather },
+    { text: "No greasiness, no irritation - even in dry climates", icon: Check },
+    { text: "Leaves your skin visibly smoother and more even", icon: Sun },
   ];
 
   const [selectedIngredient, setSelectedIngredient] = useState<keyof typeof ingredientData>("Hyaluronic Acid");

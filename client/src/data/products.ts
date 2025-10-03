@@ -16,6 +16,9 @@ import essence6 from '@/assets/product_img/essence/essence6.jpg';
 import essence7 from '@/assets/product_img/essence/essence7.jpg';
 import essence8 from '@/assets/product_img/essence/essence8.jpg';
 import essencevid1 from '@/assets/product_img/essence/vid1.mp4';
+import essencevid2 from '@/assets/product_img/essence/vid2.mp4';
+import essencevid3 from '@/assets/product_img/essence/vid3.mp4';
+
 import moisturizer1 from '@/assets/product_img/moisturizer/moisturizer1.jpg';
 import moisturizer2 from '@/assets/product_img/moisturizer/moisturizer2.jpg';
 import moisturizer3 from '@/assets/product_img/moisturizer/moisturizer3.jpg';
@@ -23,12 +26,17 @@ import moisturizer4 from '@/assets/product_img/moisturizer/moisturizer4.jpg';
 import moisturizer5 from '@/assets/product_img/moisturizer/moisturizer5.jpg';
 import moisturizer6 from '@/assets/product_img/moisturizer/moisturizer6.jpg';
 import moisturizer7 from '@/assets/product_img/moisturizer/moisturizer7.jpg';
+import moisturizervid1 from '@/assets/product_img/moisturizer/vid1.mp4';
+import moisturizervid2 from '@/assets/product_img/moisturizer/vid2.mp4';
+
 import sunscreen1 from '@/assets/product_img/sunscreen/sunscreen1.jpg';
 import sunscreen2 from '@/assets/product_img/sunscreen/sunscreen2.jpg';
 import sunscreen3 from '@/assets/product_img/sunscreen/sunscreen3.jpg';
 import sunscreen4 from '@/assets/product_img/sunscreen/sunscreen4.jpg';
 import sunscreen5 from '@/assets/product_img/sunscreen/sunscreen5.jpg';
 import sunscreen6 from '@/assets/product_img/sunscreen/sunscreen6.jpg';
+import sunscreenvid1 from '@/assets/product_img/sunscreen/vid1.mp4';
+import sunscreenvid2 from '@/assets/product_img/sunscreen/vid2.mp4';
 import combo1 from '@/assets/product_img/combo.jpg';
 import combo2 from '@/assets/product_img/combo2.jpg';
 import combo3 from '@/assets/product_img/combo3.jpg';
@@ -80,11 +88,7 @@ export const products: Product[] = [
     gallery: [cleanser1, cleanser2, cleanser3, cleanser4, cleanser5],
     description:
       'A gentle yet effective cleanser that removes impurities while maintaining the skin barrier.',
-    benefits: [
-      "Deeply cleanses without stripping natural oils",
-      "Refreshes skin with natural extracts",
-      "Dermatologically tested for sensitive skin",
-    ],
+   
    // benefitimg: [benefit1, benefit2],
    relatedproduct:['moisturizer','essence']
   },
@@ -107,9 +111,10 @@ export const products: Product[] = [
     ],
     videos: [
       essencevid1,
-      // essencevid2,
-      // essencevid3,
-    ]
+      essencevid2,
+     essencevid3,
+    ],
+    relatedproduct:['cleanser','moisturizer']
   },
   {
     id: 3,
@@ -123,7 +128,13 @@ export const products: Product[] = [
     hoverImage: moisturizer2,
     gallery: [moisturizer1, moisturizer2,moisturizer3,moisturizer4,moisturizer5,moisturizer6,moisturizer7],
     description: 'Provides intense moisturization while balancing oil production.',
-    },
+    relatedproduct:['cleanser','essence'],
+    videos: [
+      moisturizervid1,
+      moisturizervid2,
+
+    ]
+        },
   {
     id: 4,
     slug: 'sunscreen',
@@ -136,6 +147,12 @@ export const products: Product[] = [
     hoverImage: sunscreen2,
     gallery: [sunscreen1, sunscreen2,sunscreen3,sunscreen4,sunscreen5,sunscreen6],
     description: 'SPF 50+ PA++++ broad spectrum protection designed for Indian skin.',
+    relatedproduct:['cleanser','moisturizer'],
+    videos: [
+      sunscreenvid1,
+      sunscreenvid2,
+
+    ]
   },
   {
     id: 5,

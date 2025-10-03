@@ -7,8 +7,8 @@ import Transaction from '../models/Transaction.js';
 
 // Admin credentials (in production, store in database with hashed password)
 const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123'
+  username: 'admin@melita.in',
+  password: 'Kites@123'
 };
 
 // Admin login

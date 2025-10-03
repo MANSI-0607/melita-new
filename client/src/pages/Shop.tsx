@@ -4,12 +4,23 @@ import TopStrip from '@/components/TopStrip';
 import { ShoppingBag, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { products } from '@/data/products';
+import { getProductsLive, Product } from '@/data/products';
 import AddToCartButton from '@/components/AddToCartButton';
+import { useEffect, useState } from 'react';
 
 
 const Shop = () => {
-  
+  const [items, setItems] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getProductsLive()
+      .then(p => { if (mounted) setItems(p); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,7 +39,7 @@ const Shop = () => {
 
         {/* Product Grid */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {products.map((product) => (
+          {(loading ? [] : items).map((product) => (
             <div
               key={product.id}
               className="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden group transition-shadow duration-300 hover:shadow-lg"
@@ -70,7 +81,6 @@ const Shop = () => {
                     ({product.reviews} reviews)
                   </Link>
                 </div>
-
                 <div className="mt-4 space-y-2">
                   <AddToCartButton
                     product={{
@@ -82,7 +92,7 @@ const Shop = () => {
                     }}
                     className="w-full bg-melita-golden-taupe hover:bg-melita-deep-coffee text-white flex items-center justify-center gap-2"
                   />
-                  
+                 
                 </div>
               </div>
             </div>
@@ -94,5 +104,4 @@ const Shop = () => {
     </div>
   );
 };
-
 export default Shop;
