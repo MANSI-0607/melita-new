@@ -14,6 +14,7 @@ import rewardRoutes from './routes/rewards.js';
 import reviewRoutes from './routes/reviews.js';
 import checkoutRoutes from './routes/checkout.js';
 import adminRoutes from './routes/admin.js';
+import couponRoutes from './routes/coupons.js';
 import { fileURLToPath } from "url";
 
 // __dirname replacement for ESM
@@ -60,6 +61,7 @@ app.get("/", (req, res) => {
       addresses: "/addresses",
       rewards: "/rewards",
       reviews: "/reviews",
+      coupons: "/coupons",
       simpleProducts: "/api/products"
     }
   });
@@ -104,6 +106,7 @@ app.use('/profile', profileRoutes);
 app.use('/addresses', addressRoutes);
 app.use('/rewards', rewardRoutes);
 app.use('/reviews', reviewRoutes);
+app.use('/coupons', couponRoutes);
 
 app.use('/checkout', checkoutRoutes);
 app.use('/admin', adminRoutes);

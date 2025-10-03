@@ -189,3 +189,11 @@ All colors MUST be HSL. Inspired by natural elegance and luxury.
 .instagram-media .socialContext {
   display: none !important;
 }
+.instagram-media .Header .FollowButton,
+.instagram-media .Footer,
+.instagram-media a[href*="view"] {
+  background-color: #1e4323 !important; /* custom color */
+  display: none !important;
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+}

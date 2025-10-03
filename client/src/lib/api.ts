@@ -13,7 +13,8 @@ async function request<T>(method: HttpMethod, path: string, body?: any, init?: R
   const adminToken = localStorage.getItem('melita_admin_token');
   const userToken = localStorage.getItem('melita_token');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const isAdminPath = normalizedPath.startsWith('/admin');
+  // Treat both /admin and /coupons namespaces as admin-protected APIs
+  const isAdminPath = ['/admin', '/coupons'].some(p => normalizedPath.startsWith(p));
   const token = isAdminPath ? (adminToken || userToken) : (userToken || adminToken);
 
   const headers: HeadersInit = {

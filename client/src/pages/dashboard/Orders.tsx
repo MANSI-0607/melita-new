@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingBag, ArrowLeft, Package, Truck, CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Package, Search, Filter, Eye, Download, ChevronLeft, ChevronRight, Truck, CheckCircle, XCircle, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { format } from 'date-fns';
+import { api } from '@/lib/api';
+import { getProductBySlug } from '@/data/products';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface OrderItem {
   product: string;
@@ -16,6 +20,52 @@ interface OrderItem {
   quantity: number;
   subtotal: number;
 }
+
+// Resolve image URL so that:
+// - Absolute URLs (http/https) are used as-is
+// - Server-hosted files (e.g., /uploads/...) are prefixed with api.baseUrl
+// - Client public assets under /images/... are served directly from the client origin
+// - Bare filenames are assumed to be in /images/products/
+const resolveImageUrl = (imagePath?: string): string => {
+  if (!imagePath) return '/placeholder-image.jpg';
+
+  // Absolute URL
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+
+  // Server uploads/static (served by API server)
+  if (imagePath.startsWith('/uploads')) {
+    return `${api.baseUrl}${imagePath}`;
+  }
+
+  // Public images (served by client, e.g., public/images/...)
+  if (imagePath.startsWith('/images')) {
+    return imagePath; // served by the client app (Vite/React) from public/
+  }
+
+  // Vite built assets
+  if (
+    imagePath.startsWith('/assets') ||
+    imagePath.startsWith('/src/assets') ||
+    imagePath.startsWith('assets/') ||
+    imagePath.startsWith('./assets')
+  ) {
+    const normalized = imagePath
+      .replace(/^\.\//, '/')
+      .replace(/^assets\//, '/assets/')
+      .replace('/src', '');
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  }
+
+  // Bare filename: assume it's a product image under public/images/products/
+  if (!imagePath.startsWith('/')) {
+    return `/images/products/${imagePath}`;
+  }
+
+  // Default: return as-is so client serves it
+  return imagePath;
+};
 
 interface Order {
   _id: string;
@@ -297,29 +347,35 @@ export default function Orders() {
                       <div className="space-y-2">
                         <p className="text-xs text-muted-foreground">Items ({order.items.length})</p>
                         <div className="flex flex-wrap gap-2">
-                          {order.items.slice(0, 3).map((item, index) => (
-                            <div key={index} className="flex items-center space-x-2 bg-muted rounded-lg p-2">
-                              <img
-                                src={item.image?.startsWith('/') ? `${api.baseUrl}${item.image}` : item.image}
-                                alt={item.name}
-                                className="w-10 h-10 rounded object-cover"
-                                loading="lazy"
-                                onError={(e) => {
-                                  const img = e.currentTarget as HTMLImageElement;
-                                  img.onerror = null; // prevent infinite loop
-                                  img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="10">No Image</text></svg>';
-                                }}
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-xs font-medium text-foreground line-clamp-1">
-                                  {item.name}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  Qty: {item.quantity}
-                                </span>
+                          {order.items.slice(0, 3).map((item, index) => {
+                            // Prefer stored order item image (should be normalized/absolute) and fall back to product data
+                            const productData = getProductBySlug(item.slug);
+                            const imageUrl = resolveImageUrl(item.image || productData?.image);
+                            
+                            return (
+                              <div key={index} className="flex items-center space-x-2 bg-muted rounded-lg p-2">
+                                <img
+                                  src={imageUrl}
+                                  alt={item.name}
+                                  className="w-10 h-10 rounded object-cover"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement;
+                                    img.onerror = null; // prevent infinite loop
+                                    img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="10">No Image</text></svg>';
+                                  }}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium text-foreground line-clamp-1">
+                                    {item.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Qty: {item.quantity}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {order.items.length > 3 && (
                             <div className="flex items-center justify-center bg-muted rounded-lg p-2 px-4">
                               <span className="text-xs font-medium text-muted-foreground">

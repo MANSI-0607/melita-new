@@ -13,7 +13,8 @@ import {
   LogOut,
   BarChart3,
   Calendar,
-  DollarSign
+  DollarSign,
+  Ticket
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -25,6 +26,7 @@ import AdminUsers from './components/AdminUsers';
 import AdminTransactions from './components/AdminTransactions';
 import AdminReviews from './components/AdminReviews';
 import AdminSettings from './components/AdminSettings';
+import CouponManagement from './CouponManagement';
 
 
 interface AdminStats {
@@ -56,6 +58,7 @@ export default function AdminDashboard() {
     { id: "products", label: "Manage Products", icon: <Package className="h-4 w-4" />, count: stats?.totalProducts },
     { id: "orders", label: "Manage Orders", icon: <ShoppingBag className="h-4 w-4" />, count: stats?.totalOrders },
     { id: "users", label: "Manage Users", icon: <Users className="h-4 w-4" />, count: stats?.totalUsers },
+    { id: "coupons", label: "Manage Coupons", icon: <Ticket className="h-4 w-4" /> },
     { id: "transactions", label: "Manage Transactions", icon: <DollarSign className="h-4 w-4" /> },
     { id: "reviews", label: "Manage Reviews", icon: <Star className="h-4 w-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
@@ -298,6 +301,8 @@ export default function AdminDashboard() {
           {activeSection === "orders" && <AdminOrders />}
 
           {activeSection === "users" && <AdminUsers />}
+
+          {activeSection === "coupons" && <CouponManagement />}
 
           {activeSection === "reviews" && <AdminReviews />}
 

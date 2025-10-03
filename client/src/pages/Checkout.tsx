@@ -1049,12 +1049,12 @@ const Checkout: React.FC = () => {
                       delivery_est: '5-7 business days',
                       charge: 0,
                     },
-                    {
-                      id: 'express',
-                      label: 'Express Shipping',
-                      delivery_est: '2-3 business days',
-                      charge: 99,
-                    },
+                    // {
+                    //   id: 'express',
+                    //   label: 'Express Shipping',
+                    //   delivery_est: '2-3 business days',
+                    //   charge: 99,
+                    // },
                   ].map((method) => (
                     <label
                       key={method.id}
