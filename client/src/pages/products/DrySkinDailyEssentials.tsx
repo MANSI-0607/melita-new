@@ -2,15 +2,13 @@ import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
 import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
-import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette } from "lucide-react";
+import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette, Droplets, Heart } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
-import whyLoveImg from '@/assets/product_img/cleanser/whylove.jpg';
-import who from '@/assets/product_img/cleanser/who.jpg';
-import whomob from '@/assets/product_img/cleanser/whomob.jpg';
-import how from '@/assets/product_img/cleanser/how.jpg';
-import howmob from '@/assets/product_img/cleanser/howmob.jpg';
-import howtouse from '@/assets/product_img/cleanser/howtouse.jpg';
-import howtousemob from '@/assets/product_img/cleanser/howtousemob.jpg';
+import whyLoveImg from '@/assets/product_img/dryskinwhylove.jpg';
+import who from '@/assets/product_img/dryskinwho.jpg';
+import whomob from '@/assets/product_img/dryskinwhomob.jpg';
+import howtouse from '@/assets/product_img/dryskinhow.jpg';
+import howtousemob from '@/assets/product_img/dryskinhow.jpg';
 import { useState } from 'react';
 
 const DrySkinDailyEssentials = () => {
@@ -27,17 +25,16 @@ const DrySkinDailyEssentials = () => {
     },
     "All Ingredients": {
       title: "Complete Ingredient List",
-      description: "List your kit ingredients here...",
       benefits: []
     }
   } as const;
 
   const features = [
-    { text: "Daily Hydration", icon: Feather },
+    { text: "Daily Hydration", icon: Droplets },
     { text: "Barrier Friendly", icon: ShieldCheck },
-    { text: "Visible Comfort", icon: Sparkles },
+    { text: "Visible Comfort", icon: Heart },
     { text: "Balanced Finish", icon: Scale },
-    { text: "Layer-Friendly", icon: Palette },
+    { text: "Layer-Friendly", icon: Check },
   ];
 
   const [selectedIngredient, setSelectedIngredient] = useState<keyof typeof ingredientData>("Hyaluronic Acid");
@@ -87,16 +84,16 @@ const DrySkinDailyEssentials = () => {
       </section>
 
       {/* How It Feels - Desktop */}
-      <section className="hidden md:block w-full mt-12 px-4">
+      {/* <section className="hidden md:block w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] uppercase">How It Feels</h2>
         <div className="relative max-w-7xl mx-auto rounded-2xl h-[400px] mt-6 px-4 py-12 overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${how})` }} />
-      </section>
+      </section> */}
 
       {/* How It Feels - Mobile */}
-      <section className="md:hidden w-full mt-12 px-4">
+      {/* <section className="md:hidden w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] mb-8 uppercase">How It Feels</h2>
         <div className="relative w-full min-h-[300px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howmob})` }} />
-      </section>
+      </section> */}
 
    
 

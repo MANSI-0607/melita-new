@@ -2,15 +2,14 @@ import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
 import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
-import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette } from "lucide-react";
+import { Feather, ShieldCheck, Droplets, Timer, Sun } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
-import whyLoveImg from '@/assets/product_img/cleanser/whylove.jpg';
-import who from '@/assets/product_img/cleanser/who.jpg';
-import whomob from '@/assets/product_img/cleanser/whomob.jpg';
-import how from '@/assets/product_img/cleanser/how.jpg';
-import howmob from '@/assets/product_img/cleanser/howmob.jpg';
-import howtouse from '@/assets/product_img/cleanser/howtouse.jpg';
-import howtousemob from '@/assets/product_img/cleanser/howtousemob.jpg';
+import whyLoveImg from '@/assets/product_img/oilyskinwhylove.jpg';
+import who from '@/assets/product_img/oilyskinwho.jpg';
+import whomob from '@/assets/product_img/oilyskinwhomob.jpg';
+
+import howtouse from '@/assets/product_img/oilyskinhow.jpg';
+import howtousemob from '@/assets/product_img/oilyskinhowmob.jpg';
 import { useState } from 'react';
 
 const OilySkinDailyEssentials = () => {
@@ -33,11 +32,11 @@ const OilySkinDailyEssentials = () => {
   } as const;
 
   const features = [
-    { text: "Oil Balancing", icon: Scale },
-    { text: "Non-Comedogenic", icon: ShieldCheck },
-    { text: "Fresh Feel", icon: Sparkles },
-    { text: "Lightweight Texture", icon: Feather },
-    { text: "Layers Well", icon: Palette },
+    { text: "Lifts oil and impurities without disrupting your barrier", icon: Feather },
+    { text: "Hydrates without clogging pores", icon: Droplets },
+    { text: "Zero white cast, even on deeper skin tones", icon: Sun },
+    { text: "Soothes and calms breakout-prone skin", icon: ShieldCheck },
+    { text: "3 products, 2 minutes, all-day balance", icon: Timer },
   ];
 
   const [selectedIngredient, setSelectedIngredient] = useState<keyof typeof ingredientData>("Niacinamide");
@@ -87,16 +86,16 @@ const OilySkinDailyEssentials = () => {
       </section>
 
       {/* How It Feels - Desktop */}
-      <section className="hidden md:block w-full mt-12 px-4">
+      {/* <section className="hidden md:block w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] uppercase">How It Feels</h2>
         <div className="relative max-w-7xl mx-auto rounded-2xl h-[400px] mt-6 px-4 py-12 overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${how})` }} />
-      </section>
+      </section> */}
 
       {/* How It Feels - Mobile */}
-      <section className="md:hidden w-full mt-12 px-4">
+      {/* <section className="md:hidden w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] mb-8 uppercase">How It Feels</h2>
         <div className="relative w-full min-h-[300px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howmob})` }} />
-      </section>
+      </section> */}
 
     
       {/* How To Use - Desktop */}

@@ -2,15 +2,14 @@ import ProductPage from '@/components/ProductPage';
 import Footer from '@/components/Footer';
 import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
-import { Check, Feather, ShieldCheck, Sparkles, Scale, Palette } from "lucide-react";
+import { Feather, ShieldCheck, Droplets, Timer, Sun } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
-import whyLoveImg from '@/assets/product_img/cleanser/whylove.jpg';
-import who from '@/assets/product_img/cleanser/who.jpg';
-import whomob from '@/assets/product_img/cleanser/whomob.jpg';
-import how from '@/assets/product_img/cleanser/how.jpg';
-import howmob from '@/assets/product_img/cleanser/howmob.jpg';
-import howtouse from '@/assets/product_img/cleanser/howtouse.jpg';
-import howtousemob from '@/assets/product_img/cleanser/howtousemob.jpg';
+import whyLoveImg from '@/assets/product_img/duowhylove.jpg';
+//import who from '@/assets/product_img/duowho.jpg';
+import whomob from '@/assets/product_img/duowhomob.jpg';
+
+import howtouse from '@/assets/product_img/duohow.jpg';
+import howtousemob from '@/assets/product_img/duohowmob.jpg';
 import { useState } from 'react';
 
 const BarrierCareStarterDuo = () => {
@@ -33,13 +32,14 @@ const BarrierCareStarterDuo = () => {
   } as const;
 
   const features = [
-    { text: "Daily Barrier Support", icon: ShieldCheck },
-    { text: "Hydrating", icon: Feather },
-    { text: "Calming", icon: Sparkles },
-    { text: "Balanced Finish", icon: Scale },
-    { text: "Perfect Starter Duo", icon: Palette },
+    {text:"No-Stripping Cleanse",icon: Feather},
+    {text:"Hydration That Hits Instantly",icon: Droplets},
+    {text:"Barrier-Safe, Always",icon: ShieldCheck},
+    {text:"Minimal Effort, Visible Results",icon: Timer},
+    {text:"Perfect for Busy Mornings or Beginners",icon:Sun},
   ];
 
+  
   const [selectedIngredient, setSelectedIngredient] = useState<keyof typeof ingredientData>("Ceramides");
   const ingredients = Object.keys(ingredientData) as Array<keyof typeof ingredientData>;
   const currentIngredient = ingredientData[selectedIngredient];
@@ -77,7 +77,7 @@ const BarrierCareStarterDuo = () => {
       {/* Who is it for? - Desktop */}
       <section className="hidden md:block w-full mt-12 px-4">
         <h2 className="text-center uppercase text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] mb-8">Who is it for?</h2>
-        <div className="relative max-w-7xl mx-auto rounded-2xl min-h-[400px] mt-6 px-4 py-12 overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${who})` }} />
+        <div className="relative max-w-7xl mx-auto rounded-2xl min-h-[400px] mt-6 px-4 py-12 overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${whomob})` }} />
       </section>
 
       {/* Who is it for? - Mobile */}
@@ -87,16 +87,16 @@ const BarrierCareStarterDuo = () => {
       </section>
 
       {/* How It Feels - Desktop */}
-      <section className="hidden md:block w-full mt-12 px-4">
+      {/* <section className="hidden md:block w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] uppercase">How It Feels</h2>
         <div className="relative max-w-7xl mx-auto rounded-2xl h-[400px] mt-6 px-4 py-12 overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${how})` }} />
-      </section>
+      </section> */}
 
       {/* How It Feels - Mobile */}
-      <section className="md:hidden w-full mt-12 px-4">
+      {/* <section className="md:hidden w-full mt-12 px-4">
         <h2 className="text-center text-xl sm:text-3xl font-semibold font-headingOne text-[#1e4323] mb-8 uppercase">How It Feels</h2>
         <div className="relative w-full min-h-[300px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howmob})` }} />
-      </section>
+      </section> */}
 
       {/* What's Inside? */}
       {/* <section className="max-w-7xl mx-auto mt-12 px-4">

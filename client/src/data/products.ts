@@ -18,16 +18,35 @@ import essence8 from '@/assets/product_img/essence/essence8.jpg';
 import essencevid1 from '@/assets/product_img/essence/vid1.mp4';
 import moisturizer1 from '@/assets/product_img/moisturizer/moisturizer1.jpg';
 import moisturizer2 from '@/assets/product_img/moisturizer/moisturizer2.jpg';
+import moisturizer3 from '@/assets/product_img/moisturizer/moisturizer3.jpg';
+import moisturizer4 from '@/assets/product_img/moisturizer/moisturizer4.jpg';
+import moisturizer5 from '@/assets/product_img/moisturizer/moisturizer5.jpg';
+import moisturizer6 from '@/assets/product_img/moisturizer/moisturizer6.jpg';
+import moisturizer7 from '@/assets/product_img/moisturizer/moisturizer7.jpg';
 import sunscreen1 from '@/assets/product_img/sunscreen/sunscreen1.jpg';
 import sunscreen2 from '@/assets/product_img/sunscreen/sunscreen2.jpg';
+import sunscreen3 from '@/assets/product_img/sunscreen/sunscreen3.jpg';
+import sunscreen4 from '@/assets/product_img/sunscreen/sunscreen4.jpg';
+import sunscreen5 from '@/assets/product_img/sunscreen/sunscreen5.jpg';
+import sunscreen6 from '@/assets/product_img/sunscreen/sunscreen6.jpg';
 import combo1 from '@/assets/product_img/combo.jpg';
 import combo2 from '@/assets/product_img/combo2.jpg';
+import combo3 from '@/assets/product_img/combo3.jpg';
+import combo4 from '@/assets/product_img/combo4.jpg';
 import drySkin1 from '@/assets/product_img/dryskin.jpg';
 import drySkin2 from '@/assets/product_img/dryskin2.jpg';
+import drySkin3 from '@/assets/product_img/dryskin3.jpg';
+import drySkin4 from '@/assets/product_img/dryskin4.jpg';
+
 import oilySkin1 from '@/assets/product_img/oilyskin.jpg';
 import oilySkin2 from '@/assets/product_img/oilyskin2.jpg';
+import oilySkin3 from '@/assets/product_img/oilyskin3.jpg';
+import oilySkin4 from '@/assets/product_img/oilyskin4.jpg';
 import duo1 from '@/assets/product_img/duo.jpg';
 import duo2 from '@/assets/product_img/duo2.jpg';
+import duo3 from '@/assets/product_img/duo3.jpg';
+import duo4 from '@/assets/product_img/duo4.jpg';
+
 
 export type Product = {
   id: number;
@@ -102,7 +121,7 @@ export const products: Product[] = [
     reviews: 19,
     image: moisturizer1,
     hoverImage: moisturizer2,
-    gallery: [moisturizer1, moisturizer2],
+    gallery: [moisturizer1, moisturizer2,moisturizer3,moisturizer4,moisturizer5,moisturizer6,moisturizer7],
     description: 'Provides intense moisturization while balancing oil production.',
     },
   {
@@ -115,7 +134,7 @@ export const products: Product[] = [
     reviews: 4,
     image: sunscreen1,
     hoverImage: sunscreen2,
-    gallery: [sunscreen1, sunscreen2],
+    gallery: [sunscreen1, sunscreen2,sunscreen3,sunscreen4,sunscreen5,sunscreen6],
     description: 'SPF 50+ PA++++ broad spectrum protection designed for Indian skin.',
   },
   {
@@ -128,7 +147,7 @@ export const products: Product[] = [
     reviews: 14,
     image: combo1,
     hoverImage: combo2,
-    gallery: [combo1, combo2],
+    gallery: [combo1, combo2,combo3,combo4],
     description: 'Complete skincare routine to strengthen and protect your skin barrier.',
   },
   {
@@ -141,7 +160,7 @@ export const products: Product[] = [
     reviews: 4,
     image: drySkin1,
     hoverImage: drySkin2,
-    gallery: [drySkin1, drySkin2],
+    gallery: [drySkin1, drySkin2,drySkin3,drySkin4],
   },
   {
     id: 7,
@@ -153,7 +172,7 @@ export const products: Product[] = [
     reviews: 7,
     image: oilySkin1,
     hoverImage: oilySkin2,
-    gallery: [oilySkin1, oilySkin2],
+    gallery: [oilySkin1, oilySkin2,oilySkin3,oilySkin4],
   },
   {
     id: 8,
@@ -165,7 +184,7 @@ export const products: Product[] = [
     reviews: 2,
     image: duo1,
     hoverImage: duo2,
-    gallery: [duo1, duo2],
+    gallery: [duo1, duo2,duo3,duo4],
   },
 ];
 

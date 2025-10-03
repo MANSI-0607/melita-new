@@ -4,13 +4,13 @@ import ProductReview from '@/components/ProductReview';
 import ProductFAQ from '@/components/ProductFAQ';
 import { Check, Feather,Droplets, Heart, Sun } from "lucide-react";
 // Reuse cleanser assets for now to keep build runnable
-import whyLoveImg from '@/assets/product_img/cleanser/whylove.jpg';
-import who from '@/assets/product_img/cleanser/who.jpg';
-import whomob from '@/assets/product_img/cleanser/whomob.jpg';
-import how from '@/assets/product_img/cleanser/how.jpg';
-import howmob from '@/assets/product_img/cleanser/howmob.jpg';
-import howtouse from '@/assets/product_img/cleanser/howtouse.jpg';
-import howtousemob from '@/assets/product_img/cleanser/howtousemob.jpg';
+import whyLoveImg from '@/assets/product_img/moisturizer/whylove.jpg';
+import who from '@/assets/product_img/moisturizer/who.jpg';
+import whomob from '@/assets/product_img/moisturizer/whomob.jpg';
+import how from '@/assets/product_img/moisturizer/how.jpg';
+import howmob from '@/assets/product_img/moisturizer/howmob.jpg';
+import howtouse from '@/assets/product_img/moisturizer/howtouse.jpg';
+import howtousemob from '@/assets/product_img/moisturizer/howtousemob.jpg';
 import { useEffect, useState } from 'react';
 import useProductIngredients from '@/hooks/useProductIngredients';
 
