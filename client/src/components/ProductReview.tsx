@@ -107,8 +107,7 @@ const ProductReview = ({slug }) => {
         <div className="px-6 py-10 max-w-7xl mx-auto">
           <div className="text-center">
             <div className="mb-4">Loading reviews...</div>
-            <div className="text-sm text-gray-500">Product ID: {backendProductId}</div>
-            <div className="text-sm text-gray-500">Slug: {slug}</div>
+            
           </div>
         </div>
       </section>
