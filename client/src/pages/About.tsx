@@ -14,8 +14,7 @@ import banner4 from '@/assets/about/banner4.jpg';
 
 import foundersImg from '@/assets/about/founders.png';
 
-// import ingredientVideo from '@/assets/about/ingredient.mp4';
-import ingredientVideoMob from '@/assets/about/ingredientMob.mp4';
+
 
 import footerBannerDesktop from '@/assets/about/footerBannerNew.png';
 import footerBannerMob from '@/assets/about/footerBannerMob.png';
@@ -133,7 +132,7 @@ const About = () => {
           <div className="max-w-7xl mx-auto text-center">
             <div className="aspect-video max-w-7xl mx-auto overflow-hidden shadow-lg">
               <video
-                //src={ingredientVideo}
+                src="/ingredient.mp4"
                 autoPlay
                 muted
                 loop
