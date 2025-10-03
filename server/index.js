@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import connectDB from './config/db.js';
+import jwt from 'jsonwebtoken';
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
 import orderRoutes from './routes/orders.js';
@@ -67,36 +68,26 @@ app.get("/", (req, res) => {
   });
 });
 
-// Test endpoint for token validation
-app.get("/test-token", (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  console.log('Test endpoint - Token received:', token);
-  console.log('Test endpoint - JWT Secret:', process.env.JWT_SECRET || 'melita_dev_secret');
-  
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-  
-  try {
-    const jwt = require('jsonwebtoken');
-    const TOKEN_SECRET = process.env.JWT_SECRET || 'melita_dev_secret';
-    const decoded = jwt.verify(token, TOKEN_SECRET);
-    res.json({ 
-      success: true, 
-      decoded,
-      secret: TOKEN_SECRET 
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(401).json({ 
-      success: false, 
-      error: error.message,
-      secret: process.env.JWT_SECRET || 'melita_dev_secret'
-    });
-  }
-});
+// Test endpoint for token validation (disabled in production)
+if (process.env.NODE_ENV !== 'production') {
+  app.get("/test-token", (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    try {
+      const TOKEN_SECRET = process.env.JWT_SECRET || 'melita_dev_secret';
+      const decoded = jwt.verify(token, TOKEN_SECRET);
+      res.json({ success: true, decoded });
+    } catch (error) {
+      console.error('Token verification error:', error);
+      res.status(401).json({ success: false, error: error.message });
+    }
+  });
+}
 
 // API Routes
 app.use('/auth', authRoutes);

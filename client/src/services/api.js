@@ -1,5 +1,6 @@
 // API service for Melita e-commerce
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use the same env var naming as lib/api.ts
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 class ApiService {
   constructor() {

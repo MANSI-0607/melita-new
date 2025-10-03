@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { Search, Filter, Eye, Package } from 'lucide-react';
 import Barcode from 'react-barcode';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 interface Order {
   _id: string;
