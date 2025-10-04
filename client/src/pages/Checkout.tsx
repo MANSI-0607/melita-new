@@ -478,8 +478,8 @@ const Checkout: React.FC = () => {
   const shippingCost = shippingMethod.charge;
   const totalDiscount = couponDiscount + coinsDiscount;
   const grandTotal = Math.max(0, subtotal + shippingCost - totalDiscount);
-  // Rewards: 10% of order price everywhere (match backend)
-  const cashbackEarned = Math.floor(grandTotal * 0.10);
+  // Rewards: 10% of order price (rounded to match backend logic)
+  const cashbackEarned = Math.round(grandTotal * 0.10);
 
   const placeOrder = async () => {
     if (!selectedAddressId) {
