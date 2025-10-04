@@ -221,7 +221,7 @@ const ProductPage = ({ slug }) => {
                       <div className="flex-1 p-4 md:p-6 flex flex-col justify-center">
                         <p className="text-[#1e4323] font-medium">{r.name}</p>
                         <p className="mt-1 text-lg font-semibold text-[#80593a]">{r.price}</p>
-                        <div className="mt-2 flex space-x-2">
+                        <div className="mt-2 flex flex-col sm:flex-row gap-2 sm:gap-2">
                           <AddToCartButton
                             product={{
                               id: r.id,
@@ -231,11 +231,11 @@ const ProductPage = ({ slug }) => {
                               image: r.image
                             }}
                             size="sm"
-                            className="bg-[#80593a] text-white px-4 py-1"
+                            className="bg-[#80593a] text-white px-4 py-2 w-full sm:w-auto"
                           />
                           <Link
                             to={`/products/${r.slug}`}
-                            className="border border-[#80593a] text-[#80593a] text-sm px-4 py-1 flex items-center justify-center"
+                            className="border border-[#80593a] text-[#80593a] text-sm px-4 py-2 flex items-center justify-center rounded w-full sm:w-auto"
                           >
                             Quick View
                           </Link>
