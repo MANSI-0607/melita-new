@@ -23,7 +23,7 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      const response = await api.post<{ success: boolean; token: string; admin: any }>("/admin", formData);
+      const response = await api.post<{ success: boolean; token: string; admin: any }>("/admin/login", formData);
       
       if (response.success) {
         localStorage.setItem("melita_admin_token", response.token);
