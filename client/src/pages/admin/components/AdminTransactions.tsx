@@ -182,7 +182,7 @@ const AdminTransactions: React.FC = () => {
         <CardHeader>
           <CardTitle>Transactions ({filteredTransactions.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

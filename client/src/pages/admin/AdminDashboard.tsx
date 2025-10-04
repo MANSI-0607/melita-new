@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const sidebarItems: SidebarItem[] = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="h-4 w-4" /> },
@@ -124,8 +125,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 flex items-center justify-between px-4 h-14">
+        <button
+          aria-label="Open sidebar"
+          className="p-2 rounded-md hover:bg-gray-100"
+          onClick={() => setSidebarOpen(true)}
+        >
+          {/* simple hamburger */}
+          <span className="block w-5 h-0.5 bg-gray-800 mb-1"></span>
+          <span className="block w-5 h-0.5 bg-gray-800 mb-1"></span>
+          <span className="block w-5 h-0.5 bg-gray-800"></span>
+        </button>
+        <div className="text-sm font-semibold">Melita Admin</div>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-red-600 px-2 py-1 border border-red-200 rounded"
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col">
+      <div className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900">Melita Admin</h1>
           <p className="text-sm text-gray-600">Management Dashboard</p>
@@ -135,7 +157,7 @@ export default function AdminDashboard() {
           {sidebarItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => { setActiveSection(item.id); setSidebarOpen(false); }}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors ${
                 activeSection === item.id
                   ? "bg-primary text-white"
@@ -155,7 +177,7 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 hidden lg:block">
           <Button
             onClick={handleLogout}
             variant="ghost"
@@ -168,8 +190,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
+      <div className="flex-1 overflow-auto w-full">
+        <div className="pt-16 lg:pt-0 p-4 lg:p-8">
           {activeSection === "dashboard" && (
             <div className="space-y-8">
               <div>
@@ -178,7 +200,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                 <Card className="border-border bg-card shadow-soft">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
@@ -245,7 +267,7 @@ export default function AdminDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-80">
+                  <div className="h-64 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={stats?.ordersPerDay || []}>
                         <CartesianGrid strokeDasharray="3 3" />

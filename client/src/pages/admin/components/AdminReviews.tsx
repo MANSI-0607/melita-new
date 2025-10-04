@@ -197,7 +197,7 @@ const AdminReviews: React.FC = () => {
         <CardHeader>
           <CardTitle>Reviews ({filteredReviews.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>

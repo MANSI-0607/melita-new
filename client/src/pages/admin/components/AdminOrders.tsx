@@ -169,7 +169,7 @@ const AdminOrders: React.FC = () => {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -215,7 +215,7 @@ const AdminOrders: React.FC = () => {
         <CardHeader>
           <CardTitle>Orders ({filteredOrders.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -313,7 +313,7 @@ const AdminOrders: React.FC = () => {
    
 {/* Shipping Label Modal */}
 <Dialog open={labelOpen} onOpenChange={setLabelOpen}>
-  <DialogContent className="max-w-3xl">
+  <DialogContent className="w-[95vw] sm:max-w-3xl">
     <DialogHeader>
       <DialogTitle>Print Shipping Label</DialogTitle>
     </DialogHeader>
@@ -427,7 +427,7 @@ const AdminOrders: React.FC = () => {
 
       {/* Invoice/Bill Modal */}
       <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
-        <DialogContent className="max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Invoice</DialogTitle>
           </DialogHeader>

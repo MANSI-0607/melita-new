@@ -126,7 +126,7 @@ const AdminUsers: React.FC = () => {
         <CardHeader>
           <CardTitle>Users ({filteredUsers.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
