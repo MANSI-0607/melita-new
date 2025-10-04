@@ -9,7 +9,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!static|favicon\\.ico|robots\\.txt).*)",
+      "source": "/((?!assets|favicon\\.ico|robots\\.txt).*)",
       "destination": "/"
     }
   ]

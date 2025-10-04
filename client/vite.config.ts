@@ -3,11 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: './', // ✅ top-level, not in plugins
+  base: './', // Relative paths for SPA deployment
   server: {
-    host: "::",
+    host: true, // Listen on all network interfaces
     port: 8080,
   },
   plugins: [

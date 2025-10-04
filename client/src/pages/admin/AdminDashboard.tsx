@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const token = localStorage.getItem("melita_admin_token");
     if (!token) {
-      navigate("/admin/login");
+      navigate("/admin");
       return;
     }
     fetchStats();
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
       setError(msg);
       if (msg.toLowerCase().includes("unauthorized")) {
         localStorage.removeItem("melita_admin_token");
-        navigate("/admin/login");
+        navigate("/admin");
       }
     } finally {
       setLoading(false);
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("melita_admin_token");
-    navigate("/admin/login");
+    navigate("/admin");
   };
 
   if (loading) {

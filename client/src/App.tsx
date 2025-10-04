@@ -75,7 +75,7 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
 
           {/* admin routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* dashboard with nested routes */}
