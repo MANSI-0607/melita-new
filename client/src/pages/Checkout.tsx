@@ -18,6 +18,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import AuthModal from '@/components/AuthModal';
 
 interface Address {
   _id: string;
@@ -50,7 +51,7 @@ interface Coupon {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { state: cartState, clearCart } = useCart();
+  const { state: cartState, clearCart, closeCart } = useCart();
   const { toast } = useToast();
 
   // API base for production readiness (fallback to local backend in dev)
@@ -125,6 +126,8 @@ const Checkout: React.FC = () => {
   const [coinsToApply, setCoinsToApply] = useState<string>('');
   const [appliedCoins, setAppliedCoins] = useState<number>(0);
   const [userCoins, setUserCoins] = useState<number>(0);
+  // Auth modal
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
 
   // Redirect if cart empty (but not if payment succeeded)
   useEffect(() => {
@@ -133,11 +136,12 @@ const Checkout: React.FC = () => {
     }
   }, [cartState?.items, navigate, paymentStatus]);
 
-  // Load user stuff
+  // Load user stuff or trigger auth modal if not logged in
   useEffect(() => {
     const token = localStorage.getItem('melita_token');
     if (!token) {
-      navigate('/login');
+      setAuthModalOpen(true);
+      closeCart();
       return;
     }
     loadUserData();
@@ -145,6 +149,21 @@ const Checkout: React.FC = () => {
     loadCoupons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  // Handle closing of Auth modal
+  const handleAuthClose = () => {
+    setAuthModalOpen(false);
+    const token = localStorage.getItem('melita_token');
+    if (token) {
+      // After successful login, reload user-dependent data and stay on checkout
+      loadUserData();
+      loadAddresses();
+      loadCoupons();
+    } else {
+      // If user dismissed without logging in, send back to cart
+      navigate('/cart');
+    }
+  };
 
   const testToken = async () => {
     try {
@@ -310,7 +329,8 @@ const Checkout: React.FC = () => {
           description: 'Please log in to save address',
           variant: 'destructive',
         });
-        navigate('/login');
+        setAuthModalOpen(true);
+        closeCart();
         return;
       }
 
@@ -810,6 +830,7 @@ const Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+      <AuthModal open={authModalOpen} onClose={handleAuthClose} />
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center items-center h-16">

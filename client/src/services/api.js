@@ -9,7 +9,9 @@ class ApiService {
 
   // Get auth token from localStorage
   getToken() {
-    return localStorage.getItem('authToken');
+    // Primary key used across app (AuthModal, Checkout, etc.)
+    const token = localStorage.getItem('melita_token') || localStorage.getItem('authToken');
+    return token;
   }
 
   // Create headers with auth token
@@ -39,6 +41,9 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.warn('API 401 Unauthorized for', endpoint, '- missing/invalid token');
+        }
         throw new Error(data.message || 'Request failed');
       }
 

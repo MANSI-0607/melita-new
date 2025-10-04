@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -14,14 +14,17 @@ import vegan from '@/assets/featues/Vegan.png';
 import indian from '@/assets/featues/Indian Skin.png';
 import active from '@/assets/featues/Active.png';
 
-
 const ProductPage = ({ slug }) => {
   const navigate = useNavigate();
   const [product, setProduct] = useState<any | null>(null);
-  const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Image carousel state
+  const [activeIndex, setActiveIndex] = useState(0);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [currentVideoSrc, setCurrentVideoSrc] = useState('');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -30,7 +33,6 @@ const ProductPage = ({ slug }) => {
       .then((p) => {
         if (!mounted) return;
         setProduct(p || null);
-        if (p) setActiveImage(p.gallery?.[0] ?? p.image ?? null);
       })
       .finally(() => mounted && setLoading(false));
     return () => {
@@ -39,42 +41,10 @@ const ProductPage = ({ slug }) => {
   }, [slug]);
 
   const marqueeItems = [
-    {
-      icon: derm,
-      text: (
-        <>
-          Dermatologically
-          <br /> Tested
-        </>
-      ),
-    },
-    {
-      icon: vegan,
-      text: (
-        <>
-          Vegan &
-          <br /> Cruelty Free
-        </>
-      ),
-    },
-    {
-      icon: indian,
-      text: (
-        <>
-          Indian Skin
-          <br /> Focused
-        </>
-      ),
-    },
-    {
-      icon: active,
-      text: (
-        <>
-          Actives at
-          <br /> Optimal Percentage
-        </>
-      ),
-    },
+    { icon: derm, text: <>Dermatologically<br /> Tested</> },
+    { icon: vegan, text: <>Vegan &<br /> Cruelty Free</> },
+    { icon: indian, text: <>Indian Skin<br /> Focused</> },
+    { icon: active, text: <>Actives at<br /> Optimal Percentage</> },
   ];
 
   if (loading) {
@@ -113,6 +83,26 @@ const ProductPage = ({ slug }) => {
     setIsVideoModalOpen(true);
   };
 
+  // Handle scroll for main carousel
+  const handleMainScroll = () => {
+    if (mainScrollRef.current) {
+      const scrollLeft = mainScrollRef.current.scrollLeft;
+      const width = mainScrollRef.current.clientWidth;
+      const index = Math.round(scrollLeft / width);
+      setActiveIndex(index);
+    }
+  };
+
+  const scrollToImage = (index: number) => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({
+        left: index * mainScrollRef.current.clientWidth,
+        behavior: 'smooth',
+      });
+    }
+    setActiveIndex(index);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <TopStrip />
@@ -122,36 +112,46 @@ const ProductPage = ({ slug }) => {
         <div className="mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Gallery */}
           <div className="h-auto lg:sticky lg:top-0 lg:self-start lg:h-fit">
-            <div className="p-2 md:p-4 rounded-xl mb-4 relative overflow-hidden">
+            <div className="p-1 md:p-2 mb-4 relative bg-white border border-gray-200">
+              {/* Main swipeable carousel */}
               <div
-                id="carousel"
-                className="flex gap-x-2 w-full h-fit md:h-[400px] transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${(product.gallery?.indexOf(activeImage) ?? 0) * 100}%)` }}
+                ref={mainScrollRef}
+                onScroll={handleMainScroll}
+                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-hide w-full h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px] rounded-xl"
               >
-                {product.gallery?.map((img, idx) => (
-                  <div key={idx} className="w-full shrink-0">
+                {(product.gallery && product.gallery.length > 0
+                  ? product.gallery
+                  : [product.image]
+                ).map((img, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-full h-full snap-center flex items-center justify-center overflow-hidden"
+                  >
                     <img
                       src={img}
-                      alt={`${product.name} - Gallery View`}
-                      className="w-full h-[400px] object-contain rounded-lg"
+                      alt={`Product ${i}`}
+                      className="max-h-full max-w-full object-contain"
                     />
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Thumbnails */}
             {product.gallery && product.gallery.length > 0 && (
-              <div className="flex space-x-3 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory lg:justify-center scrollbar-custom">
                 {product.gallery.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveImage(img)}
-                    className={`w-20 h-20 rounded-lg border-2 hover:border-pink-400 cursor-pointer object-cover ${
-                      activeImage === img ? 'border-pink-400' : 'border-transparent'
+                    onClick={() => scrollToImage(idx)}
+                    className={`shrink-0 w-20 h-20 rounded-lg border-2 snap-start ${
+                      activeIndex === idx ? 'border-[#835339]' : 'border-gray-200'
                     }`}
+                    aria-label={`Select image ${idx + 1}`}
                   >
                     <img
                       src={img}
-                      alt={`Thumbnail of ${product.name} ${idx + 1}`}
+                      alt={`Thumbnail ${idx + 1}`}
                       className="w-full h-full object-cover rounded-lg"
                     />
                   </button>
@@ -202,7 +202,6 @@ const ProductPage = ({ slug }) => {
                 }}
                 className="font-headingTwo bg-[#835339] hover:bg-white text-white hover:text-[#835339] hover:border border-[#835339] font-bold px-6 py-2 rounded"
               />
-             
             </div>
 
             {/* Buy it with section */}
@@ -258,18 +257,46 @@ const ProductPage = ({ slug }) => {
                   {product.description}
                 </p>
               )}
-              <p className="mt-2 font-headingTwo text-[#835339] py-2"></p>
             </div>
 
             {/* Video Section */}
             {product.videos && product.videos.length > 0 && (
-              <section className="mt-8 px-4">
-                <div className={`grid gap-2 sm:gap-4 ${
-                  product.videos.length === 1 ? 'grid-cols-1' :
-                  product.videos.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-                  product.videos.length === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                  'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-                }`}>
+              <section className="mt-8 px-2 sm:px-4">
+                {/* Mobile: horizontal scroll */}
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory md:hidden scrollbar-custom">
+                  {product.videos.map((vid, index) => (
+                    <div
+                      key={index}
+                      className="shrink-0 w-40 sm:w-48 snap-start rounded-2xl overflow-hidden shadow-md cursor-pointer"
+                      onClick={() => handleVideoClick(vid)}
+                    >
+                      <video
+                        autoPlay
+                        muted
+                        playsInline
+                        loop
+                        preload="metadata"
+                        className="w-full aspect-[9/16] object-cover rounded-2xl"
+                      >
+                        <source src={vid} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: grid */}
+                <div
+                  className={`hidden md:grid gap-3 lg:gap-4 ${
+                    product.videos.length === 1
+                      ? 'grid-cols-1'
+                      : product.videos.length === 2
+                      ? 'grid-cols-2'
+                      : product.videos.length === 3
+                      ? 'grid-cols-3'
+                      : 'grid-cols-4'
+                  }`}
+                >
                   {product.videos.map((vid, index) => (
                     <div
                       key={index}
@@ -277,12 +304,12 @@ const ProductPage = ({ slug }) => {
                       onClick={() => handleVideoClick(vid)}
                     >
                       <video
-                        autoPlay={true}
-                        className="aspect-[9/16] w-full rounded-2xl"
+                        autoPlay
                         muted
                         playsInline
                         loop
                         preload="metadata"
+                        className="w-full aspect-[9/16] object-cover rounded-2xl"
                       >
                         <source src={vid} type="video/mp4" />
                         Your browser does not support the video tag.
@@ -327,12 +354,11 @@ const ProductPage = ({ slug }) => {
                 </div>
               </section>
             )}
-            
           </div>
         </div>
       </main>
 
-      {/* Marquee Section Integrated Directly */}
+      {/* Marquee Section */}
       <section className="p-4 w-full mx-auto">
         <div className="marquee-wrapper overflow-hidden">
           <div className="marquee-track flex animate-marquee">
@@ -351,8 +377,6 @@ const ProductPage = ({ slug }) => {
           </div>
         </div>
       </section>
-
-      
     </div>
   );
 };

@@ -108,14 +108,33 @@ const FAQComponent: React.FC<FAQComponentProps> = ({ slug }) => {
         <div className="text-center text-sm text-red-600 mb-4">{error}</div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Sidebar */}
+        {/* Sidebar - mobile horizontal scroll */}
         <div className="md:col-span-1">
-          <ul className="space-y-2">
+          {/* Mobile: horizontal pills */}
+          <ul className="md:hidden -mx-2 px-2 flex gap-2 overflow-x-auto pb-2">
+            {hasData && dataToUse.map((item, index) => (
+              <li key={index} className="shrink-0">
+                <button
+                  onClick={() => handleCategoryClick(index)}
+                  className={`text-sm font-semibold whitespace-nowrap py-2 px-4 rounded-full border transition
+                    ${activeTab === index
+                      ? 'border-[#835339] bg-[#f7f2ee] text-[#4A4A4A]'
+                      : 'border-gray-300 bg-white text-[#835339] hover:bg-gray-50'
+                    }`}
+                >
+                  {item.category}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: vertical list */}
+          <ul className="hidden md:block space-y-2">
             {hasData && dataToUse.map((item, index) => (
               <li key={index}>
                 <button
                   onClick={() => handleCategoryClick(index)}
-                  className={`flex-shrink-0 text-base font-semibold whitespace-nowrap py-2 px-4 rounded-lg transition text-left border-l-4 w-full
+                  className={`text-base font-semibold whitespace-nowrap py-2 px-4 rounded-lg transition text-left border-l-4 w-full
                     ${activeTab === index
                       ? 'border-[#835339] text-[#4A4A4A] bg-gray-200'
                       : 'border-l-4 border-transparent text-[#835339] hover:bg-gray-100'
