@@ -8,6 +8,9 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/((?!static|favicon\\.ico|robots\\.txt).*)",
+      "destination": "/"
+    }
   ]
 }
