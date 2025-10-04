@@ -38,7 +38,7 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
-
+//adding comment
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
