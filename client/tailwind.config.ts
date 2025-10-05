@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -14,26 +19,25 @@ export default {
     },
     extend: {
       fontFamily: {
-        'playfair': ['Playfair Display', 'serif'],
-        'roboto': ['Roboto', 'sans-serif'],
-        'headingOne': ['Poppins', 'sans-serif'],
+        playfair: ["Playfair Display", "serif"],
+        roboto: ["Roboto", "sans-serif"],
+        headingOne: ["Poppins", "sans-serif"],
       },
       fontWeight: {
-        'bold': '700',
-        'semibold': '600',
-        'medium': '500',
-        'light': '300'
+        bold: "700",
+        semibold: "600",
+        medium: "500",
+        light: "300",
       },
-      
       colors: {
         // Melita Brand Colors
         melita: {
-          'soft-beige': 'hsl(var(--melita-soft-beige))',
-          'warm-sand': 'hsl(var(--melita-warm-sand))',
-          'golden-taupe': 'hsl(var(--melita-golden-taupe))',
-          'deep-coffee': 'hsl(var(--melita-deep-coffee))',
-          'light': 'hsl(var(--melita-light))',
-          'medium': 'hsl(var(--melita-medium))',
+          "soft-beige": "hsl(var(--melita-soft-beige))",
+          "warm-sand": "hsl(var(--melita-warm-sand))",
+          "golden-taupe": "hsl(var(--melita-golden-taupe))",
+          "deep-coffee": "hsl(var(--melita-deep-coffee))",
+          light: "hsl(var(--melita-light))",
+          medium: "hsl(var(--melita-medium))",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -80,18 +84,18 @@ export default {
         },
       },
       backgroundImage: {
-        'gradient-luxury': 'var(--gradient-luxury)',
-        'gradient-hero': 'var(--gradient-hero)',
-        'gradient-product': 'var(--gradient-product)',
+        "gradient-luxury": "var(--gradient-luxury)",
+        "gradient-hero": "var(--gradient-hero)",
+        "gradient-product": "var(--gradient-product)",
       },
       boxShadow: {
-        'soft': 'var(--shadow-soft)',
-        'luxury': 'var(--shadow-luxury)',
-        'product': 'var(--shadow-product)',
+        soft: "var(--shadow-soft)",
+        luxury: "var(--shadow-luxury)",
+        product: "var(--shadow-product)",
       },
       transitionTimingFunction: {
-        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
-        'bounce': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
+        bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -100,34 +104,27 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
-   
     },
     boxShadow: {
       luxury: "0 4px 20px hsl(var(--soft-shadow))",
       soft: "0 2px 10px hsl(var(--soft-shadow))",
     },
   },
-  plugins: [require("tailwindcss-animate")],
-  plugins: [require('tailwind-scrollbar-hide')],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("tailwind-scrollbar-hide"),
 
+  ],
 } satisfies Config;

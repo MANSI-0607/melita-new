@@ -95,7 +95,7 @@ const ProductShowcase = () => {
                 </Link>
 
                 {/* Product Info */}
-                <div className="p-4 space-y-1 text-center bg-[#f0e4d4] h-[120px] flex flex-col justify-center">
+                <div className="p-4 space-y-1 text-center bg-[#f0e4d4] h-[150px] flex flex-col justify-center">
                   <h3 className="text-lg font-headingTwo font-bold text-gray-900 line-clamp-2">
                     {product.name}
                   </h3>
