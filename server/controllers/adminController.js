@@ -5,6 +5,7 @@ import Product from '../models/Product.js';
 import Review from '../models/Review.js';
 import Transaction from '../models/Transaction.js';
 import Seller from '../models/Seller.js';
+import Coupon from '../models/Coupon.js';
 
 // Admin credentials (in production, store in database with hashed password)
 const ADMIN_CREDENTIALS = {
@@ -229,7 +230,8 @@ export const createUser = async (req, res) => {
       email: email || undefined,
       rewardPoints,
       isActive,
-      isVerified: true // Admin-created users are automatically verified
+      isVerified: true, // Admin-created users are automatically verified
+      addedBy: { name: 'admin' }
     });
 
 

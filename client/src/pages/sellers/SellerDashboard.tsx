@@ -16,6 +16,11 @@ import {
   Package
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import AddCustomer from './AddCustomer';
+import Customers from './Customers';
+import RecordSale from './RecordSale';
+import RedeemService from './RedeemService';
+import SalesReport from './SalesReport';
 
 interface SellerStats {
   salesToday: number;
@@ -190,64 +195,19 @@ const SellerDashboard: React.FC = () => {
         );
 
       case 'add-customer':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Customer</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Customer creation functionality will be implemented here.</p>
-            </CardContent>
-          </Card>
-        );
+        return <AddCustomer onCustomerAdded={fetchStats} />;
 
       case 'customers':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Created Customers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Customer list will be displayed here.</p>
-            </CardContent>
-          </Card>
-        );
+        return <Customers />;
 
       case 'record-sale':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Record Sale</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Sale recording functionality will be implemented here.</p>
-            </CardContent>
-          </Card>
-        );
+        return <RecordSale />;
 
       case 'redeem-service':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Redeem Against Service</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Service redemption functionality will be implemented here.</p>
-            </CardContent>
-          </Card>
-        );
+        return <RedeemService />;
 
       case 'sales-report':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">Sales reports will be displayed here.</p>
-            </CardContent>
-          </Card>
-        );
+        return <SalesReport />;
 
       default:
         return null;

@@ -1,6 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Seller from '../models/Seller.js';
+import User from '../models/User.js';
+import { sendOtp, verifyOtp } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -253,6 +255,132 @@ router.get('/dashboard-stats', authenticateSeller, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats'
+    });
+  }
+});
+
+// Add customer - Send OTP (Protected)
+router.post('/add-customer/send-otp', authenticateSeller, async (req, res) => {
+  try {
+    const { phone, name } = req.body;
+    
+    // Get seller info
+    const seller = await Seller.findById(req.seller.id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    // Prepare request body with seller info injected as addedBy
+    const otpRequest = {
+      phone,
+      name,
+      type: 'signup',
+      addedBy: {
+        name: seller.name,
+        phone: seller.contact
+      }
+    };
+
+    // Create a mock request object for the auth controller
+    const mockReq = { body: otpRequest };
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => res.status(code).json({
+          success: code < 400,
+          ...data
+        })
+      }),
+      json: (data) => res.json({
+        success: true,
+        ...data
+      })
+    };
+
+    // Call the auth controller's sendOtp function
+    await sendOtp(mockReq, mockRes);
+  } catch (error) {
+    console.error('Seller add customer send OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send OTP'
+    });
+  }
+});
+
+// Add customer - Verify OTP (Protected)
+router.post('/add-customer/verify-otp', authenticateSeller, async (req, res) => {
+  try {
+    const { phone, otp, name } = req.body;
+
+    // Prepare request body for verification
+    const verifyRequest = {
+      phone,
+      otp,
+      type: 'signup'
+    };
+
+    // Create a mock request object for the auth controller
+    const mockReq = { body: verifyRequest };
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => res.status(code).json({
+          success: code < 400,
+          ...data
+        })
+      }),
+      json: (data) => {
+        // Update seller's customer count on successful verification
+        if (data.success) {
+          Seller.findByIdAndUpdate(req.seller.id, { $inc: { totalCustomers: 1 } })
+            .catch(err => console.error('Failed to update seller customer count:', err));
+        }
+        
+        res.json({
+          success: true,
+          ...data
+        });
+      }
+    };
+
+    // Call the auth controller's verifyOtp function
+    await verifyOtp(mockReq, mockRes);
+  } catch (error) {
+    console.error('Seller add customer verify OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify OTP'
+    });
+  }
+});
+
+// Get customers added by this seller (Protected)
+router.get('/customers', authenticateSeller, async (req, res) => {
+  try {
+    const seller = await Seller.findById(req.seller.id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    // Find users added by this seller
+    const customers = await User.find({
+      'addedBy.phone': seller.contact
+    }).select('name phone isVerified createdAt rewardPoints loyaltyTier').sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: customers
+    });
+  } catch (error) {
+    console.error('Get seller customers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customers'
     });
   }
 });

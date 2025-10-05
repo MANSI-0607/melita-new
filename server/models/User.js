@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema(
         enum: ['18-25', '26-35', '36-45', '46-55', '55+'] 
       },
       skinConcerns: [{ 
-        type: String, 
+        type: String,
         enum: ['acne', 'aging', 'dark_spots', 'dryness', 'oiliness', 'sensitivity', 'uneven_tone'] 
       }],
       newsletter: { type: Boolean, default: true },
@@ -70,6 +70,11 @@ const userSchema = new mongoose.Schema(
     referredBy: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User' 
+    },
+    // Added by (e.g., seller onboarding a customer)
+    addedBy: {
+      name: { type: String, trim: true },
+      phone: { type: String, trim: true }
     },
     referralCount: { 
       type: Number, 

@@ -44,7 +44,7 @@ async function checkVerifyRateLimit(user) {
 
 export async function sendOtp(req, res) {
   try {
-    const { phone, name, type = 'signup' } = req.body || {};
+    const { phone, name, type = 'signup', addedBy } = req.body || {};
     if (!phone) return res.status(400).json({ message: 'Phone number is required' });
 
     // Validate phone number
@@ -74,12 +74,26 @@ export async function sendOtp(req, res) {
         });
       }
       // Create new user for signup
-      user = await User.create({ phone: normalizedPhone, name: name || '' });
+      const toCreate = { phone: normalizedPhone, name: name || '' };
+      if (addedBy && (addedBy.name || addedBy.phone)) {
+        toCreate.addedBy = {
+          name: addedBy.name || '',
+          phone: addedBy.phone || ''
+        };
+      }
+      user = await User.create(toCreate);
     }
 
     // For signup, if name is provided, update it
     if (type === 'signup' && name && user.name !== name) {
       user.name = name;
+      // Update addedBy post-create if provided
+      if (addedBy && (addedBy.name || addedBy.phone)) {
+        user.addedBy = {
+          name: addedBy.name || user.addedBy?.name || '',
+          phone: addedBy.phone || user.addedBy?.phone || ''
+        };
+      }
       await user.save();
     }
 
