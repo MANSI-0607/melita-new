@@ -31,7 +31,7 @@ const AdminSettings: React.FC = () => {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('melita_admin_token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/admin/settings`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/admin/settings`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

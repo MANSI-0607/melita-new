@@ -23,6 +23,11 @@ const couponSchema = new mongoose.Schema({
     ref: 'User',
     default: null // null for global coupons
   },
+  userPhone: {
+    type: String,
+    default: null, // For linking coupons to specific phone numbers
+    trim: true
+  },
   isGlobal: {
     type: Boolean,
     default: false
@@ -63,6 +68,7 @@ const couponSchema = new mongoose.Schema({
 // Index for efficient queries
 couponSchema.index({ code: 1 });
 couponSchema.index({ userId: 1, isActive: 1 });
+couponSchema.index({ userPhone: 1, isActive: 1 });
 couponSchema.index({ isGlobal: 1, isActive: 1 });
 
 const Coupon = mongoose.model('Coupon', couponSchema);

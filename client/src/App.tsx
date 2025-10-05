@@ -36,6 +36,8 @@ import Rewards from "./pages/dashboard/Rewards";
 import Transactions from "./pages/dashboard/Transactions";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import SellerLogin from "./pages/sellers/SellerLogin";
+import SellerDashboard from "./pages/sellers/SellerDashboard";
 
 const queryClient = new QueryClient();
 //adding comment
@@ -77,6 +79,10 @@ const App = () => (
           {/* admin routes */}
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+          {/* seller routes */}
+          <Route path="/seller" element={<SellerLogin/>} />
+          <Route path="/seller/dashboard" element={<SellerDashboard/>} />
 
         {/* dashboard with nested routes */}
   <Route path="/dashboard" element={<DashboardLayout />}>

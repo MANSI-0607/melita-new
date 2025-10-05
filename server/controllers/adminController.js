@@ -4,6 +4,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Review from '../models/Review.js';
 import Transaction from '../models/Transaction.js';
+import Seller from '../models/Seller.js';
 
 // Admin credentials (in production, store in database with hashed password)
 const ADMIN_CREDENTIALS = {
@@ -192,6 +193,59 @@ export const getUsers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch users'
+    });
+  }
+};
+
+// Create new user (Admin only)
+export const createUser = async (req, res) => {
+  try {
+    const { name, phone, email, rewardPoints = 0, isActive = true } = req.body;
+   
+    // Validate required fields (email optional, no password)
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name and phone are required'
+      });
+    }
+
+    // Check if user already exists (by phone always, and email if provided)
+    const orConditions = [{ phone }];
+    if (email) orConditions.push({ email });
+    const existingUser = await User.findOne({ $or: orConditions });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this phone or email already exists'
+      });
+    }
+
+    // Create new user (no password)
+    const user = new User({
+      name,
+      phone,
+      email: email || undefined,
+      rewardPoints,
+      isActive,
+      isVerified: true // Admin-created users are automatically verified
+    });
+
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: user
+    });
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create user'
     });
   }
 };
@@ -1276,6 +1330,74 @@ export const getTransactionsEnhanced = async (req, res) => {
   }
 };
 
+// Admin create review
+export const createReviewAsAdmin = async (req, res) => {
+  try {
+    const { 
+      userName, 
+      productId, 
+      rating, 
+      title, 
+      reviewText, 
+      customDate,
+      isApproved = true,
+      isVerified = false 
+    } = req.body;
+
+    // Validate required fields
+    if (!userName || !productId || !rating || !title || !reviewText) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: userName, productId, rating, title, reviewText'
+      });
+    }
+
+    // Check if product exists
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Create review with simple user name (no user object needed)
+    const review = new Review({
+      product: productId,
+      userName: userName, // Store name directly
+      rating: parseInt(rating),
+      title,
+      reviewText,
+      customDate: customDate ? new Date(customDate) : null,
+      verified: isVerified,
+      status: isApproved ? 'approved' : 'pending',
+      metadata: {
+        source: 'admin',
+        ipAddress: req.ip,
+        userAgent: 'Admin Panel'
+      }
+    });
+
+    await review.save();
+
+    // Populate product data for response
+    await review.populate('product', 'name slug');
+
+    res.status(201).json({
+      success: true,
+      message: 'Review created successfully',
+      data: review
+    });
+
+  } catch (error) {
+    console.error('Admin create review error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create review'
+    });
+  }
+};
+
 // Get reviews with enhanced data
 export const getReviewsEnhanced = async (req, res) => {
   try {
@@ -1325,6 +1447,792 @@ export const getReviewsEnhanced = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch reviews'
+    });
+  }
+};
+
+// ===== ADMIN COUPON MANAGEMENT =====
+
+// Get all coupons (Admin only)
+export const getAdminCoupons = async (req, res) => {
+  try {
+    console.log('Admin coupons request:', req.query);
+    const { page = 1, limit = 10, search, type, isActive } = req.query;
+    
+    // Build filter object
+    const filter = {};
+    
+    if (search) {
+      filter.$or = [
+        { code: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (type) {
+      filter.type = type;
+    }
+    
+    if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    }
+    
+    console.log('Coupon filter:', filter);
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const coupons = await Coupon.find(filter)
+      .populate('userId', 'name email phone')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await Coupon.countDocuments(filter);
+    
+    console.log(`Found ${coupons.length} coupons, total: ${total}`);
+    
+    res.json({
+      success: true,
+      data: {
+        coupons,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          total
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get admin coupons error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coupons'
+    });
+  }
+};
+
+// Get single coupon by ID (Admin only)
+export const getAdminCouponById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const coupon = await Coupon.findById(id).populate('userId', 'name email phone');
+    
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Coupon not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: coupon
+    });
+  } catch (error) {
+    console.error('Get admin coupon by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coupon'
+    });
+  }
+};
+
+// Create new coupon (Admin only)
+export const createAdminCoupon = async (req, res) => {
+  try {
+    const {
+      code,
+      type,
+      value,
+      userId,
+      userPhone,
+      isGlobal,
+      usageLimit,
+      minOrderAmount,
+      maxDiscountAmount,
+      validFrom,
+      validUntil,
+      description
+    } = req.body;
+    
+    // Validate required fields
+    if (!code || !type || !value) {
+      return res.status(400).json({
+        success: false,
+        message: 'Code, type, and value are required'
+      });
+    }
+    
+    // Validate type and value
+    if (!['fixed', 'percentage'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type must be either "fixed" or "percentage"'
+      });
+    }
+    
+    if (type === 'percentage' && (value < 0 || value > 100)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Percentage value must be between 0 and 100'
+      });
+    }
+    
+    if (value < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Value must be positive'
+      });
+    }
+    
+    // Check if coupon code already exists
+    const existingCoupon = await Coupon.findOne({ code: code.toUpperCase() });
+    if (existingCoupon) {
+      return res.status(400).json({
+        success: false,
+        message: 'Coupon code already exists'
+      });
+    }
+    
+    // Determine scope and link user by id or phone for user-specific coupons
+    let resolvedUserId = null;
+    let resolvedUserPhone = null;
+    
+    if (isGlobal) {
+      resolvedUserId = null;
+      resolvedUserPhone = null;
+    } else {
+      // User-specific: require either userId or userPhone
+      if (!userId && !userPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'Provide either userId or userPhone for a user-specific coupon, or set isGlobal to true'
+        });
+      }
+
+      if (userId) {
+        const user = await User.findById(userId);
+        if (!user) {
+          return res.status(400).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        resolvedUserId = user._id;
+        resolvedUserPhone = user.phone;
+      } else if (userPhone) {
+        const user = await User.findOne({ phone: userPhone });
+        if (!user) {
+          return res.status(400).json({
+            success: false,
+            message: 'User with this phone number not found. Please create the user first, then link the coupon.'
+          });
+        }
+        resolvedUserId = user._id;
+        resolvedUserPhone = user.phone;
+      }
+    }
+    
+    // Create coupon
+    const coupon = new Coupon({
+      code: code.toUpperCase(),
+      type,
+      value,
+      userId: resolvedUserId,
+      userPhone: resolvedUserPhone,
+      isGlobal: isGlobal || false,
+      usageLimit: usageLimit || 1,
+      minOrderAmount: minOrderAmount || 0,
+      maxDiscountAmount,
+      validFrom: validFrom ? new Date(validFrom) : new Date(),
+      validUntil: validUntil ? new Date(validUntil) : null,
+      description
+    });
+    
+    await coupon.save();
+    
+    // Populate user data for response
+    await coupon.populate('userId', 'name email phone');
+    
+    res.status(201).json({
+      success: true,
+      message: 'Coupon created successfully',
+      data: coupon
+    });
+  } catch (error) {
+    console.error('Create admin coupon error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create coupon'
+    });
+  }
+};
+
+// Update coupon (Admin only)
+export const updateAdminCoupon = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      code,
+      type,
+      value,
+      userId,
+      userPhone,
+      isGlobal,
+      isActive,
+      usageLimit,
+      minOrderAmount,
+      maxDiscountAmount,
+      validFrom,
+      validUntil,
+      description
+    } = req.body;
+    
+    const coupon = await Coupon.findById(id);
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Coupon not found'
+      });
+    }
+    
+    // Validate type and value if provided
+    if (type && !['fixed', 'percentage'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Type must be either "fixed" or "percentage"'
+      });
+    }
+    
+    if (value !== undefined) {
+      if (value < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Value must be positive'
+        });
+      }
+      
+      if ((type || coupon.type) === 'percentage' && (value < 0 || value > 100)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Percentage value must be between 0 and 100'
+        });
+      }
+    }
+    
+    // Check if new coupon code already exists (if code is being changed)
+    if (code && code.toUpperCase() !== coupon.code) {
+      const existingCoupon = await Coupon.findOne({ code: code.toUpperCase() });
+      if (existingCoupon) {
+        return res.status(400).json({
+          success: false,
+          message: 'Coupon code already exists'
+        });
+      }
+    }
+    
+    // Handle user linking for updates
+    if (isGlobal === false && (userId || userPhone)) {
+      let targetUser = null;
+      if (userId) {
+        targetUser = await User.findById(userId);
+      } else if (userPhone) {
+        targetUser = await User.findOne({ phone: userPhone });
+      }
+      
+      if (!targetUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      
+      coupon.userId = targetUser._id;
+      coupon.userPhone = targetUser.phone;
+      coupon.isGlobal = false;
+    }
+    
+    // Update fields
+    if (code) coupon.code = code.toUpperCase();
+    if (type) coupon.type = type;
+    if (value !== undefined) coupon.value = value;
+    if (isGlobal !== undefined) {
+      coupon.isGlobal = isGlobal;
+      if (isGlobal) {
+        coupon.userId = null;
+        coupon.userPhone = null;
+      }
+    }
+    if (isActive !== undefined) coupon.isActive = isActive;
+    if (usageLimit !== undefined) coupon.usageLimit = usageLimit;
+    if (minOrderAmount !== undefined) coupon.minOrderAmount = minOrderAmount;
+    if (maxDiscountAmount !== undefined) coupon.maxDiscountAmount = maxDiscountAmount;
+    if (validFrom) coupon.validFrom = new Date(validFrom);
+    if (validUntil) coupon.validUntil = new Date(validUntil);
+    if (description !== undefined) coupon.description = description;
+    
+    await coupon.save();
+    
+    // Populate user data for response
+    await coupon.populate('userId', 'name email phone');
+    
+    res.json({
+      success: true,
+      message: 'Coupon updated successfully',
+      data: coupon
+    });
+  } catch (error) {
+    console.error('Update admin coupon error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update coupon'
+    });
+  }
+};
+
+// Delete coupon (Admin only)
+export const deleteAdminCoupon = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const coupon = await Coupon.findById(id);
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Coupon not found'
+      });
+    }
+    
+    await Coupon.findByIdAndDelete(id);
+    
+    res.json({
+      success: true,
+      message: 'Coupon deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete admin coupon error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete coupon'
+    });
+  }
+};
+
+// Toggle coupon status (Admin only)
+export const toggleAdminCouponStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const coupon = await Coupon.findById(id);
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        message: 'Coupon not found'
+      });
+    }
+    
+    coupon.isActive = !coupon.isActive;
+    await coupon.save();
+    
+    res.json({
+      success: true,
+      message: `Coupon ${coupon.isActive ? 'activated' : 'deactivated'} successfully`,
+      data: coupon
+    });
+  } catch (error) {
+    console.error('Toggle admin coupon status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to toggle coupon status'
+    });
+  }
+};
+
+// Get coupon statistics (Admin only)
+export const getAdminCouponStats = async (req, res) => {
+  try {
+    console.log('Admin coupon stats request');
+    const totalCoupons = await Coupon.countDocuments();
+    const activeCoupons = await Coupon.countDocuments({ isActive: true });
+    const expiredCoupons = await Coupon.countDocuments({ 
+      validUntil: { $lt: new Date() },
+      isActive: true
+    });
+    const globalCoupons = await Coupon.countDocuments({ isGlobal: true });
+    const userSpecificCoupons = await Coupon.countDocuments({ isGlobal: false });
+    
+    const stats = {
+      total: totalCoupons,
+      active: activeCoupons,
+      inactive: totalCoupons - activeCoupons,
+      expired: expiredCoupons,
+      global: globalCoupons,
+      userSpecific: userSpecificCoupons
+    };
+    
+    console.log('Coupon stats:', stats);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Get admin coupon stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coupon statistics'
+    });
+  }
+};
+
+// ===== ADMIN SELLER MANAGEMENT =====
+
+// Get all sellers (Admin only)
+export const getAdminSellers = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, status } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { contact: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const sellers = await Seller.find(filter)
+      .select('-password') // Exclude password
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Seller.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: {
+        sellers,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          total
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get admin sellers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sellers'
+    });
+  }
+};
+
+// Get single seller by ID (Admin only)
+export const getAdminSellerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const seller = await Seller.findById(id).select('-password');
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: seller
+    });
+  } catch (error) {
+    console.error('Get admin seller by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch seller'
+    });
+  }
+};
+
+// Create new seller (Admin only)
+export const createAdminSeller = async (req, res) => {
+  try {
+    const { name, contact, password, status = 'active' } = req.body;
+
+    // Validate required fields
+    if (!name || !contact || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, contact, and password are required'
+      });
+    }
+
+    // Check if seller with this contact already exists
+    const existingSeller = await Seller.findByContact(contact);
+    if (existingSeller) {
+      return res.status(400).json({
+        success: false,
+        message: 'Seller with this contact number already exists'
+      });
+    }
+
+    // Validate contact number format
+    if (!/^[6-9]\d{9}$/.test(contact)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contact number must be a valid 10-digit Indian mobile number'
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Create seller
+    const seller = new Seller({
+      name: name.trim(),
+      contact,
+      password,
+      status
+    });
+
+    await seller.save();
+
+    // Remove password from response
+    const sellerResponse = seller.toJSON();
+
+    res.status(201).json({
+      success: true,
+      message: 'Seller created successfully',
+      data: sellerResponse
+    });
+  } catch (error) {
+    console.error('Create admin seller error:', error);
+
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create seller'
+    });
+  }
+};
+
+// Update seller (Admin only)
+export const updateAdminSeller = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, contact, status } = req.body;
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    // Update fields if provided
+    if (name) seller.name = name.trim();
+    if (status) seller.status = status;
+
+    // Handle contact update
+    if (contact && contact !== seller.contact) {
+      // Check if new contact already exists
+      const existingSeller = await Seller.findByContact(contact);
+      if (existingSeller && existingSeller._id.toString() !== id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Another seller with this contact number already exists'
+        });
+      }
+
+      // Validate contact number format
+      if (!/^[6-9]\d{9}$/.test(contact)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Contact number must be a valid 10-digit Indian mobile number'
+        });
+      }
+
+      seller.contact = contact;
+    }
+
+    await seller.save();
+
+    // Remove password from response
+    const sellerResponse = seller.toJSON();
+
+    res.json({
+      success: true,
+      message: 'Seller updated successfully',
+      data: sellerResponse
+    });
+  } catch (error) {
+    console.error('Update admin seller error:', error);
+
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update seller'
+    });
+  }
+};
+
+// Update seller password (Admin only)
+export const updateAdminSellerPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password is required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    seller.password = newPassword;
+    await seller.save();
+
+    res.json({
+      success: true,
+      message: 'Seller password updated successfully'
+    });
+  } catch (error) {
+    console.error('Update admin seller password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update seller password'
+    });
+  }
+};
+
+// Toggle seller status (Admin only)
+export const toggleAdminSellerStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    // Toggle status
+    seller.status = seller.status === 'active' ? 'banned' : 'active';
+    await seller.save();
+
+    res.json({
+      success: true,
+      message: `Seller ${seller.status === 'active' ? 'unbanned' : 'banned'} successfully`,
+      data: seller.toJSON()
+    });
+  } catch (error) {
+    console.error('Toggle admin seller status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to toggle seller status'
+    });
+  }
+};
+
+// Delete seller (Admin only)
+export const deleteAdminSeller = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const seller = await Seller.findById(id);
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Seller not found'
+      });
+    }
+
+    await Seller.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Seller deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete admin seller error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete seller'
+    });
+  }
+};
+
+// Get seller statistics (Admin only)
+export const getAdminSellerStats = async (req, res) => {
+  try {
+    const totalSellers = await Seller.countDocuments();
+    const activeSellers = await Seller.countDocuments({ status: 'active' });
+    const bannedSellers = await Seller.countDocuments({ status: 'banned' });
+    const inactiveSellers = await Seller.countDocuments({ status: 'inactive' });
+
+    res.json({
+      success: true,
+      data: {
+        total: totalSellers,
+        active: activeSellers,
+        banned: bannedSellers,
+        inactive: inactiveSellers
+      }
+    });
+  } catch (error) {
+    console.error('Get admin seller stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch seller statistics'
     });
   }
 };

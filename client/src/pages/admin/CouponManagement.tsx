@@ -33,7 +33,9 @@ interface Coupon {
     _id: string;
     name: string;
     email: string;
+    phone: string;
   };
+  userPhone?: string;
   isGlobal: boolean;
   isActive: boolean;
   usageLimit: number;
@@ -65,19 +67,19 @@ const CouponManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
-
   // Form state
   const [formData, setFormData] = useState({
     code: '',
     type: 'percentage' as 'fixed' | 'percentage',
     value: '',
-    isGlobal: true,
-    usageLimit: '1',
-    minOrderAmount: '0',
+    usageLimit: '',
+    minOrderAmount: '',
     maxDiscountAmount: '',
     validFrom: '',
     validUntil: '',
-    description: ''
+    description: '',
+    isGlobal: false,
+    userPhone: ''
   });
 
   useEffect(() => {
@@ -88,21 +90,23 @@ const CouponManagement = () => {
   const fetchCoupons = async () => {
     try {
       const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '10');
       if (searchTerm) params.append('search', searchTerm);
       if (filterType !== 'all') params.append('type', filterType);
       if (filterStatus !== 'all') params.append('isActive', filterStatus);
-
-      const response = await api.get<any>(`/coupons?${params.toString()}`);
-      // Accept both shapes: {success,data:{coupons,...}} or {coupons,...}
-      const payload = response?.data ?? response;
-      const list: Coupon[] = payload?.coupons ?? [];
+      
+      const response = await api.get(`/admin/coupons?${params.toString()}`);
+      const raw = (response as any).data;
+      const payload = raw && raw.success ? raw.data : raw;
+      const list = payload?.coupons || [];
       setCoupons(Array.isArray(list) ? list : []);
-    } catch (error) {
-      console.error('Error fetching coupons:', error);
+    } catch (error: any) {
+      console.error('Fetch coupons error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch coupons',
-        variant: 'destructive'
+        title: "Error",
+        description: error.response?.data?.message || error.message || "Failed to fetch coupons",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -111,11 +115,21 @@ const CouponManagement = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get<any>('/coupons/stats');
-      const payload = response?.data ?? response;
-      setStats(payload as CouponStats);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      const response = await api.get('/admin/coupons/stats');
+      const raw = (response as any).data;
+      const stats = raw && raw.success ? raw.data : raw;
+      if (stats && typeof stats === 'object' && 'total' in stats) {
+        setStats(stats as any);
+      } else {
+        console.error('Invalid stats response structure:', stats);
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch coupon stats:', error);
+      toast({
+        title: "Warning",
+        description: "Failed to fetch coupon statistics",
+        variant: "destructive"
+      });
     }
   };
 
@@ -134,27 +148,38 @@ const CouponManagement = () => {
       };
 
       if (editingCoupon) {
-        await api.put(`/coupons/${editingCoupon._id}`, payload);
+        await api.put(`/admin/coupons/${editingCoupon._id}`, payload);
         toast({
           title: 'Success',
           description: 'Coupon updated successfully'
         });
       } else {
-        await api.post('/coupons', payload);
+        await api.post('/admin/coupons', payload);
         toast({
           title: 'Success',
           description: 'Coupon created successfully'
         });
       }
-
+      
       setIsDialogOpen(false);
       resetForm();
       fetchCoupons();
       fetchStats();
     } catch (error: any) {
+      console.error('Coupon save error:', error);
+      
+      // Parse and display the specific error message
+      let errorMessage = 'Failed to save coupon';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to save coupon',
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -172,7 +197,8 @@ const CouponManagement = () => {
       maxDiscountAmount: coupon.maxDiscountAmount?.toString() || '',
       validFrom: coupon.validFrom ? format(new Date(coupon.validFrom), 'yyyy-MM-dd') : '',
       validUntil: coupon.validUntil ? format(new Date(coupon.validUntil), 'yyyy-MM-dd') : '',
-      description: coupon.description || ''
+      description: coupon.description || '',
+      userPhone: coupon.userPhone || ''
     });
     setIsDialogOpen(true);
   };
@@ -181,7 +207,7 @@ const CouponManagement = () => {
     if (!confirm('Are you sure you want to delete this coupon?')) return;
 
     try {
-      await api.delete(`/coupons/${id}`);
+      await api.delete(`/admin/coupons/${id}`);
       toast({
         title: 'Success',
         description: 'Coupon deleted successfully'
@@ -199,7 +225,7 @@ const CouponManagement = () => {
 
   const handleToggleStatus = async (id: string) => {
     try {
-      await api.patch(`/coupons/${id}/toggle-status`);
+      await api.patch(`/admin/coupons/${id}/toggle-status`);
       toast({
         title: 'Success',
         description: 'Coupon status updated successfully'
@@ -220,13 +246,14 @@ const CouponManagement = () => {
       code: '',
       type: 'percentage',
       value: '',
-      isGlobal: true,
       usageLimit: '1',
       minOrderAmount: '0',
       maxDiscountAmount: '',
       validFrom: '',
       validUntil: '',
-      description: ''
+      description: '',
+      isGlobal: true,
+      userPhone: ''
     });
     setEditingCoupon(null);
   };
@@ -255,14 +282,14 @@ const CouponManagement = () => {
               Create Coupon
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingCoupon ? 'Edit Coupon' : 'Create New Coupon'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="code">Coupon Code *</Label>
                   <Input
@@ -292,7 +319,7 @@ const CouponManagement = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="value">
                     {formData.type === 'percentage' ? 'Percentage (%)' : 'Amount (₹)'} *
@@ -321,7 +348,7 @@ const CouponManagement = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="minOrderAmount">Minimum Order Amount (₹)</Label>
                   <Input
@@ -346,7 +373,7 @@ const CouponManagement = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="validFrom">Valid From</Label>
                   <Input
@@ -387,6 +414,22 @@ const CouponManagement = () => {
                 <Label htmlFor="isGlobal">Global Coupon (available to all users)</Label>
               </div>
 
+              {!formData.isGlobal && (
+                <div>
+                  <Label htmlFor="userPhone">User Phone Number</Label>
+                  <Input
+                    id="userPhone"
+                    value={formData.userPhone}
+                    onChange={(e) => setFormData({ ...formData, userPhone: e.target.value })}
+                    placeholder="Enter phone number for specific user"
+                    type="tel"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Leave empty for general coupon, or enter phone number to restrict to specific user
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={handleDialogClose}>
                   Cancel
@@ -402,7 +445,7 @@ const CouponManagement = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -525,6 +568,7 @@ const CouponManagement = () => {
                   <th className="text-left p-2">Type</th>
                   <th className="text-left p-2">Value</th>
                   <th className="text-left p-2">Scope</th>
+                  <th className="text-left p-2">User</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Valid Until</th>
                   <th className="text-left p-2">Actions</th>
@@ -568,6 +612,24 @@ const CouponManagement = () => {
                           <><Users className="w-3 h-3 mr-1" /> User Specific</>
                         )}
                       </Badge>
+                    </td>
+                    <td className="p-2">
+                      {coupon.isGlobal ? (
+                        <span className="text-gray-500">-</span>
+                      ) : (
+                        <div className="text-sm">
+                          {coupon.userId ? (
+                            <div>
+                              <div className="font-medium">{coupon.userId.name}</div>
+                              <div className="text-gray-500">{coupon.userId.phone}</div>
+                            </div>
+                          ) : coupon.userPhone ? (
+                            <div className="text-gray-600">{coupon.userPhone}</div>
+                          ) : (
+                            <span className="text-gray-500">No user linked</span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-2">
                       <Badge variant={coupon.isActive ? 'default' : 'secondary'}>

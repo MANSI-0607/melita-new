@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 interface Product {
   _id: string;
@@ -291,7 +291,7 @@ const AdminProducts: React.FC = () => {
         <h2 className="text-2xl font-bold">Product Management</h2>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className='mt-2'>
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>

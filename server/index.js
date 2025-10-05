@@ -16,6 +16,7 @@ import reviewRoutes from './routes/reviews.js';
 import checkoutRoutes from './routes/checkout.js';
 import adminRoutes from './routes/admin.js';
 import couponRoutes from './routes/coupons.js';
+import sellerRoutes from './routes/sellers.js';
 import { fileURLToPath } from "url";
 
 // __dirname replacement for ESM
@@ -63,7 +64,8 @@ app.get("/", (req, res) => {
       rewards: "/rewards",
       reviews: "/reviews",
       coupons: "/coupons",
-      simpleProducts: "/api/products"
+      sellers: "/sellers",
+      admin: "/admin"
     }
   });
 });
@@ -101,6 +103,7 @@ app.use('/coupons', couponRoutes);
 
 app.use('/checkout', checkoutRoutes);
 app.use('/admin', adminRoutes);
+app.use('/sellers', sellerRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

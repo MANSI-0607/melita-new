@@ -3,21 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Search, Filter, Star, Trash2 } from 'lucide-react';
+import { Search, Filter, Star, Trash2, Plus } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 interface Review {
   _id: string;
-  user: {
+  user?: {
     _id: string;
     name: string;
     email: string;
   };
+  userName?: string; // For admin-created reviews
   product: {
     _id: string;
     name: string;
@@ -26,20 +30,42 @@ interface Review {
   rating: number;
   title: string;
   comment: string;
+  reviewText: string;
   isVerified: boolean;
   isApproved: boolean;
+  status: string;
   createdAt: string;
   updatedAt: string;
+  customDate?: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  slug: string;
 }
 
 const AdminReviews: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    userName: '',
+    productId: '',
+    rating: 5,
+    title: '',
+    reviewText: '',
+    customDate: '',
+    isApproved: true,
+    isVerified: false
+  });
 
   useEffect(() => {
     fetchReviews();
+    fetchProducts();
   }, []);
 
   const fetchReviews = async () => {
@@ -65,6 +91,70 @@ const AdminReviews: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const token = localStorage.getItem('melita_admin_token');
+      const response = await fetch(`${API_BASE}/admin/products`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch products');
+      
+      const data = await response.json();
+      setProducts((data?.data?.products) || data.products || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const handleCreateReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('melita_admin_token');
+      const response = await fetch(`${API_BASE}/admin/reviews`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create review');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Review created successfully',
+      });
+
+      setIsCreateDialogOpen(false);
+      setFormData({
+        userName: '',
+        productId: '',
+        rating: 5,
+        title: '',
+        reviewText: '',
+        customDate: '',
+        isApproved: true,
+        isVerified: false
+      });
+      fetchReviews();
+    } catch (error) {
+      console.error('Error creating review:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to create review',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -157,14 +247,136 @@ const AdminReviews: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-2xl font-bold">Review Management</h2>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className='mt-2'>
+              <Plus className="w-4 h-4 mr-2 " />
+              Create Review
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Review</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateReview} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="userName">User Name *</Label>
+                  <Input
+                    id="userName"
+                    value={formData.userName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, userName: e.target.value }))}
+                    placeholder="Enter user name"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="productId">Product *</Label>
+                  <Select value={formData.productId} onValueChange={(value) => setFormData(prev => ({ ...prev, productId: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map(product => (
+                        <SelectItem key={product._id} value={product._id}>
+                          {product.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="rating">Rating *</Label>
+                  <Select value={formData.rating.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, rating: parseInt(value) }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 Stars</SelectItem>
+                      <SelectItem value="4">4 Stars</SelectItem>
+                      <SelectItem value="3">3 Stars</SelectItem>
+                      <SelectItem value="2">2 Stars</SelectItem>
+                      <SelectItem value="1">1 Star</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="customDate">Review Date</Label>
+                  <Input
+                    id="customDate"
+                    type="date"
+                    value={formData.customDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, customDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="title">Review Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter review title"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="reviewText">Review Text *</Label>
+                <Textarea
+                  id="reviewText"
+                  value={formData.reviewText}
+                  onChange={(e) => setFormData(prev => ({ ...prev, reviewText: e.target.value }))}
+                  placeholder="Enter review text"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isApproved"
+                    checked={formData.isApproved}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isApproved: e.target.checked }))}
+                  />
+                  <Label htmlFor="isApproved">Approved</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isVerified"
+                    checked={formData.isVerified}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isVerified: e.target.checked }))}
+                  />
+                  <Label htmlFor="isVerified">Verified Purchase</Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Create Review
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -214,9 +426,18 @@ const AdminReviews: React.FC = () => {
               {filteredReviews.map((review) => (
                 <TableRow key={review._id}>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{review.user?.name || 'Unknown User'}</div>
-                      <div className="text-sm text-muted-foreground">{review.user?.email || '—'}</div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">
+                          {(review.userName || review.user?.name || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium">{review.userName || review.user?.name || 'Unknown'}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {review.user?.email || 'Admin Created'}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -226,23 +447,28 @@ const AdminReviews: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-1">
-                      {renderStars(review.rating)}
-                      <span className="ml-2 text-sm font-medium">{review.rating}/5</span>
+                    <div className="flex items-center">
+                      {[...Array(review.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      ))}
+                      {[...Array(5 - review.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 text-gray-300" />
+                      ))}
+                      <span className="ml-2 text-sm text-muted-foreground">({review.rating})</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="max-w-xs">
-                      <div className="font-medium text-sm">{review.title}</div>
-                      <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {review.comment}
+                    <div>
+                      <div className="font-medium">{review.title}</div>
+                      <div className="text-sm text-muted-foreground line-clamp-2">
+                        {review.reviewText || review.comment}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <Badge variant={review.isApproved ? 'default' : 'secondary'}>
-                        {review.isApproved ? 'Approved' : 'Pending'}
+                      <Badge variant={review.status === 'approved' ? 'default' : 'secondary'}>
+                        {review.status === 'approved' ? 'Approved' : 'Pending'}
                       </Badge>
                       {review.isVerified && (
                         <Badge variant="outline" className="text-xs">
@@ -253,7 +479,13 @@ const AdminReviews: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {new Date(review.createdAt).toLocaleDateString()}
+                      {review.customDate 
+                        ? new Date(review.customDate).toLocaleDateString()
+                        : new Date(review.createdAt).toLocaleDateString()
+                      }
+                      {review.customDate && (
+                        <div className="text-xs text-muted-foreground">Custom</div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>

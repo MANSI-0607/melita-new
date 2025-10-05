@@ -14,7 +14,8 @@ import {
   BarChart3,
   Calendar,
   DollarSign,
-  Ticket
+  Ticket,
+  Store
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -27,6 +28,7 @@ import AdminTransactions from './components/AdminTransactions';
 import AdminReviews from './components/AdminReviews';
 import AdminSettings from './components/AdminSettings';
 import CouponManagement from './CouponManagement';
+import AdminSellers from './AdminSellers';
 
 
 interface AdminStats {
@@ -59,6 +61,7 @@ export default function AdminDashboard() {
     { id: "products", label: "Manage Products", icon: <Package className="h-4 w-4" />, count: stats?.totalProducts },
     { id: "orders", label: "Manage Orders", icon: <ShoppingBag className="h-4 w-4" />, count: stats?.totalOrders },
     { id: "users", label: "Manage Users", icon: <Users className="h-4 w-4" />, count: stats?.totalUsers },
+    { id: "sellers", label: "Manage Sellers", icon: <Store className="h-4 w-4" /> },
     { id: "coupons", label: "Manage Coupons", icon: <Ticket className="h-4 w-4" /> },
     { id: "transactions", label: "Manage Transactions", icon: <DollarSign className="h-4 w-4" /> },
     { id: "reviews", label: "Manage Reviews", icon: <Star className="h-4 w-4" /> },
@@ -145,6 +148,14 @@ export default function AdminDashboard() {
           Logout
         </button>
       </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <div className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-sm border-r border-gray-200 flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
@@ -323,6 +334,8 @@ export default function AdminDashboard() {
           {activeSection === "orders" && <AdminOrders />}
 
           {activeSection === "users" && <AdminUsers />}
+
+          {activeSection === "sellers" && <AdminSellers />}
 
           {activeSection === "coupons" && <CouponManagement />}
 

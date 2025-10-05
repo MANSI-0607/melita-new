@@ -116,6 +116,7 @@ export const applyCoupon = asyncHandler(async (req, res) => {
     code: couponCode,
     $or: [
       { userId: req.user.id, isActive: true },
+      { userPhone: req.user.phone, isActive: true },
       { isGlobal: true, isActive: true }
     ]
   });

@@ -10,7 +10,12 @@ const reviewSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: false // Make optional for admin-created reviews
+    },
+    userName: {
+      type: String,
+      required: false, // For admin-created reviews without user accounts
+      trim: true
     },
     order: {
       type: mongoose.Schema.Types.ObjectId,
@@ -34,6 +39,10 @@ const reviewSchema = new mongoose.Schema(
       required: true,
       trim: true,
       maxlength: 1000
+    },
+    customDate: {
+      type: Date,
+      default: null // If null, will use createdAt for display
     },
     images: [{
       url: {
@@ -95,7 +104,8 @@ reviewSchema.index({ product: 1, user: 1 }); // Unique constraint
 
 // Virtual for review date display
 reviewSchema.virtual('dateDisplay').get(function() {
-  return this.createdAt.toLocaleDateString('en-IN', {
+  const displayDate = this.customDate || this.createdAt;
+  return displayDate.toLocaleDateString('en-IN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -104,15 +114,16 @@ reviewSchema.virtual('dateDisplay').get(function() {
 
 // Virtual for user initials
 reviewSchema.virtual('userInitials').get(function() {
-  if (this.user && this.user.name) {
-    return this.user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const name = this.userName || (this.user && this.user.name);
+  if (name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
   return 'U';
 });
 
 // Pre-save middleware to check for duplicate reviews
 reviewSchema.pre('save', async function(next) {
-  if (this.isNew) {
+  if (this.isNew && this.user) { // Only check for duplicates if user exists
     // Check if user already reviewed this product
     const existingReview = await this.constructor.findOne({
       product: this.product,
