@@ -21,6 +21,7 @@ import Customers from './Customers';
 import RecordSale from './RecordSale';
 import RedeemService from './RedeemService';
 import SalesReport from './SalesReport';
+import SellerOrders from './SellerOrders';
 
 interface SellerStats {
   salesToday: number;
@@ -101,17 +102,17 @@ const SellerDashboard: React.FC = () => {
     localStorage.removeItem('sellerToken');
     localStorage.removeItem('sellerInfo');
     toast({
-      title: 'Success',
       description: 'Logged out successfully'
     });
     navigate('/seller/login');
   };
 
-  const sidebarItems = [
+  const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'add-customer', label: 'Add Customer', icon: UserPlus },
     { id: 'customers', label: 'Created Customers', icon: Users },
     { id: 'record-sale', label: 'Record Sale', icon: ShoppingCart },
+    { id: 'orders', label: 'My Orders', icon: Package },
     { id: 'redeem-service', label: 'Redeem Against Service', icon: Gift },
     { id: 'sales-report', label: 'Sales Report', icon: BarChart3 },
   ];
@@ -174,7 +175,7 @@ const SellerDashboard: React.FC = () => {
                   Welcome to your seller dashboard. Use the sidebar to navigate between different sections.
                 </p>
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {sidebarItems.slice(1).map((item) => {
+                  {menuItems.slice(1).map((item) => {
                     const Icon = item.icon;
                     return (
                       <Button
@@ -202,6 +203,9 @@ const SellerDashboard: React.FC = () => {
 
       case 'record-sale':
         return <RecordSale />;
+
+      case 'orders':
+        return <SellerOrders />;
 
       case 'redeem-service':
         return <RedeemService />;
@@ -232,7 +236,7 @@ const SellerDashboard: React.FC = () => {
         </div>
         
         <nav className="mt-6">
-          {sidebarItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <button
