@@ -109,6 +109,41 @@ const Customers: React.FC = () => {
 
   return (
     <div className="space-y-6">
+       {/* Summary Stats */}
+       {customers.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{customers.length}</div>
+              <div className="text-sm text-gray-600">Total Customers</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {customers.filter(c => c.isVerified).length}
+              </div>
+              <div className="text-sm text-gray-600">Verified</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {customers.reduce((sum, c) => sum + c.rewardPoints, 0)}
+              </div>
+              <div className="text-sm text-gray-600">Total Points</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {customers.filter(c => c.loyaltyTier === 'gold' || c.loyaltyTier === 'platinum').length}
+              </div>
+              <div className="text-sm text-gray-600">Premium Tiers</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -194,10 +229,10 @@ const Customers: React.FC = () => {
                         </div>
 
                         {/* Loyalty Tier */}
-                        <Badge className={getTierColor(customer.loyaltyTier)}>
+                       {/* <Badge className={getTierColor(customer.loyaltyTier)}>
                           <span className="mr-1">{getTierIcon(customer.loyaltyTier)}</span>
                           {customer.loyaltyTier}
-                        </Badge>
+                        </Badge> */}
 
                         {/* Reward Points */}
                         <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -220,41 +255,7 @@ const Customers: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Stats */}
-      {customers.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{customers.length}</div>
-              <div className="text-sm text-gray-600">Total Customers</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {customers.filter(c => c.isVerified).length}
-              </div>
-              <div className="text-sm text-gray-600">Verified</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {customers.reduce((sum, c) => sum + c.rewardPoints, 0)}
-              </div>
-              <div className="text-sm text-gray-600">Total Points</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {customers.filter(c => c.loyaltyTier === 'gold' || c.loyaltyTier === 'platinum').length}
-              </div>
-              <div className="text-sm text-gray-600">Premium Tiers</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+     
     </div>
   );
 };

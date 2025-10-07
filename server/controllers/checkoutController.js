@@ -90,15 +90,15 @@ export const getAvailableCoupons = asyncHandler(async (req, res) => {
     ]
   }).sort({ createdAt: -1 });
 
-  // Find one-time coupons already used by this user via transactions metadata
-  const usedCouponIds = await Transaction.distinct('metadata.couponId', {
+  // Find one-time coupons already used by this user via order metadata (consistent with seller flow)
+  const usedCouponIds = await Order.distinct('metadata.couponId', {
     user: req.user._id,
-    'metadata.source': 'coupon'
+    'metadata.couponId': { $ne: null }
   });
 
   // Exclude coupons with usageLimit === 1 that have been used already
   const filtered = coupons.filter(c => {
-    if (c.usageLimit === 1 && usedCouponIds?.length) {
+    if ((c.usageLimit || 1) === 1 && usedCouponIds?.length) {
       // Convert both to strings for proper comparison
       return !usedCouponIds.includes(String(c._id));
     }
@@ -125,12 +125,11 @@ export const applyCoupon = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid or expired coupon' });
   }
 
-  // Check if user has already used this coupon
-  if (coupon.usageLimit === 1) {
-    const existed = await Transaction.findOne({
+  // Check if user has already used this coupon (consistent with seller flow)
+  if ((coupon.usageLimit || 1) === 1) {
+    const existed = await Order.findOne({
       user: req.user._id,
-      'metadata.couponId': String(coupon._id),
-      'metadata.source': 'coupon'
+      'metadata.couponId': String(coupon._id)
     });
     if (existed) {
       return res.status(400).json({ success: false, message: 'You have already used this coupon' });
@@ -239,11 +238,17 @@ export const createCodOrder = asyncHandler(async (req, res) => {
     shipping: {
       method: shippingMethodEnum,
     },
-    // Rewards: 10% of order total
+    // Rewards: 10% of final total (after discounts and coins)
     rewards: {
-      pointsEarned: Math.round(total * 0.10),
+      pointsEarned: Math.round(total * 0.1),
       pointsUsed: rewardPointsUsed,
       cashbackEarned: 0,
+    },
+    // Add metadata for coupon tracking (consistent with seller flow)
+    metadata: {
+      couponId: coupon?._id || coupon?.id || null,
+      couponCode: coupon?.code || null,
+      coinsUsed: rewardPointsUsed
     },
     status: 'confirmed',
   });
@@ -282,8 +287,8 @@ export const createCodOrder = asyncHandler(async (req, res) => {
         source: 'purchase'
       });
     }
-    // Record reward points earning for COD (10% cashback)
-    const pointsToCredit = Math.round(total * 0.10);
+    // Record reward points earning for COD (10% of final total)
+    const pointsToCredit = Math.round(total * 0.1);
     if (pointsToCredit > 0) {
       await Transaction.createEarning({
         userId: req.user._id,
@@ -315,7 +320,7 @@ export const createCodOrder = asyncHandler(async (req, res) => {
           amount: discount,
           description: `Used coupon '${coupon.code}'`,
           reference: savedOrder.orderNumber,
-          points: { balance: 0 },
+          points: { redeemed: discount, balance: 0 },
           status: 'completed',
           metadata: { source: 'coupon', couponId: String(coupon._id), code: coupon.code }
         });
@@ -495,8 +500,14 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
       gatewayResponse: { razorpayOrderId: razorpayOrder.id },
     },
     shipping: { method: shippingMethodEnum },
-    // Rewards: 10% of order total
-    rewards: { pointsEarned: Math.round(total * 0.10), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
+    // Rewards: 1% of subtotal (consistent with seller orders)
+    rewards: { pointsEarned: Math.round(subtotal * 0.1), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
+    // Add metadata for coupon tracking (consistent with seller flow)
+    metadata: {
+      couponId: coupon?._id || coupon?.id || null,
+      couponCode: coupon?.code || null,
+      coinsUsed: rewardPointsUsed
+    },
     status: 'pending',
   });
 
@@ -626,7 +637,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
           amount: order.pricing.discount,
           description: `Used coupon '${order.coupon.code}'`,
           reference: razorpay_payment_id,
-          points: { balance: 0 },
+          points: { redeemed: order.pricing.discount, balance: 0 },
           status: 'completed',
           metadata: { source: 'coupon', couponId: String(order.coupon.id), code: order.coupon.code }
         });

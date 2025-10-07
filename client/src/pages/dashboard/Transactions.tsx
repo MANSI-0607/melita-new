@@ -18,6 +18,11 @@ interface Transaction {
   _id: string;
   type: string; // "earn" | "redeem" | "expire"
   amount: number;
+  points: {
+    earned: number;
+    redeemed: number;
+    balance: number;
+  };
   description: string;
   orderId?: string;
   createdAt: string;
@@ -168,8 +173,14 @@ export default function Transactions() {
                     </Badge>
                     <div className={`text-right ${getTransactionColor(transaction.type)}`}>
                       <p className="text-sm font-semibold">
-                        {transaction.type === "earn" ? "+" : transaction.type === "redeem" ? "-" : ""}
-                        ₹{transaction.amount.toFixed(2)}
+                        {transaction.type === "earn" 
+                          ? `+${transaction.points?.earned || 0} points`
+                          : transaction.type === "redeem" 
+                          ? `-${transaction.points?.redeemed || 0} points`
+                          : transaction.type === "expire"
+                          ? `-${transaction.points?.redeemed || 0} points`
+                          : `₹${transaction.amount.toFixed(2)}`
+                        }
                       </p>
                     </div>
                   </div>

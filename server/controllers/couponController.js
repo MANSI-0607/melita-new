@@ -31,13 +31,29 @@ export const getEligibleCoupons = async (req, res) => {
       ]
     }).sort({ createdAt: -1 });
 
-    // Filter by min order amount if provided
+    // Get used coupons for this user if user exists
+    let usedCouponIds = [];
+    if (user) {
+      const Order = (await import('../models/Order.js')).default;
+      usedCouponIds = await Order.distinct('metadata.couponId', {
+        user: user._id,
+        'metadata.couponId': { $ne: null }
+      });
+    }
+    const usedSet = new Set((usedCouponIds || []).map(String));
+
+    // Filter by min order amount and usage limits
     const filtered = coupons.filter(c => {
       if (orderAmount !== undefined) {
         const amt = Number(orderAmount);
         if (!isNaN(amt) && c.minOrderAmount && amt < c.minOrderAmount) return false;
       }
-      // If usageLimit is 0 treat as unlimited; otherwise allow (no usage tracking implemented here)
+      
+      // Check usage limits - both global and user-specific coupons are per-customer
+      if ((c.usageLimit || 1) === 1 && user) {
+        return !usedSet.has(String(c._id));
+      }
+      
       return true;
     }).map(c => ({
       id: c._id,
@@ -128,6 +144,32 @@ export const validateCoupon = async (req, res) => {
         success: false,
         message: `Minimum order amount of ₹${coupon.minOrderAmount} required`
       });
+    }
+
+    // Check usage limits - both global and user-specific coupons are per-customer
+    if ((coupon.usageLimit || 1) === 1 && (userId || phone)) {
+      const Order = (await import('../models/Order.js')).default;
+      let user = null;
+      
+      if (userId) {
+        user = await User.findById(userId);
+      } else if (phone) {
+        user = await User.findOne({ phone });
+      }
+      
+      if (user) {
+        const alreadyUsed = await Order.findOne({
+          user: user._id,
+          'metadata.couponId': String(coupon._id)
+        });
+        
+        if (alreadyUsed) {
+          return res.status(400).json({
+            success: false,
+            message: 'This coupon has already been used by this customer.'
+          });
+        }
+      }
     }
     
     // Calculate discount

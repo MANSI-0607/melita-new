@@ -56,7 +56,7 @@ const ProductReview = ({slug }) => {
     return { star, count, percentage };
   });
 
-  const getInitials = (name) =>
+  const getInitials = (name: string | undefined) =>
     name?.split(" ").map((n) => n[0]).join("").toUpperCase() || 'U';
 
   // Handle form submission
@@ -201,9 +201,9 @@ const ProductReview = ({slug }) => {
             </div>
           ) : (
             reviews.map((review) => (
-              <div key={review._id} className="flex gap-5">
-                <div className="w-12 h-12 rounded-full bg-[#835339] flex-shrink-0 flex items-center justify-center font-bold text-white text-lg">
-                  {getInitials(review.user?.name)}
+              <div key={review._id} className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#835339] flex-shrink-0 flex items-center justify-center font-bold text-white text-lg">
+                  {getInitials((review as any).userName || review.user?.name)}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
@@ -228,15 +228,15 @@ const ProductReview = ({slug }) => {
                       </span>
                     )}
                     <span className="text-sm font-bold text-[#5c4b2c]">
-                      {review.user?.name || 'Anonymous'}
+                      {(review as any).userName || review.user?.name || (review.user ? review.user.name : 'Anonymous')}
                     </span>
-                  </div>
+                </div>
                   <h4 className="text-text-secondary font-headingTwo font-semibold text-lg mt-2">
                     {review.title}
                   </h4>
-                  <p className="text-sm text-gray-700 mt-1">{review.reviewText}</p>
+                  <p className="text-sm text-gray-700 ">{review.reviewText}</p>
                 </div>
-              </div>
+                </div>
             ))
           )}
         </div>
@@ -262,7 +262,7 @@ const ProductReview = ({slug }) => {
           {verified && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
               <p className="text-sm text-green-800">
-                ✓ Verified purchase - You'll earn 50 reward points for your review!
+                ✓ Verified purchase!
               </p>
             </div>
           )}

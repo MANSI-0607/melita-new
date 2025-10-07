@@ -10,11 +10,11 @@ const reviewSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false // Make optional for admin-created reviews
+      required: false // Optional to allow admin-created reviews without a user
     },
     userName: {
       type: String,
-      required: false, // For admin-created reviews without user accounts
+      required: function() { return !this.user; }, // Require a name if no user is linked
       trim: true
     },
     order: {

@@ -117,7 +117,7 @@ export const createOrder = async (req, res) => {
         status: 'pending'
       },
       rewards: {
-        pointsEarned: Math.round(subtotal * 0.01), // 1% cashback in points
+        pointsEarned: Math.round(subtotal * 0.1), // 1% cashback in points
         pointsUsed: rewardPointsUsed,
         cashbackEarned: 0
       }
@@ -286,15 +286,15 @@ export const updateOrderStatus = async (req, res) => {
 
     await order.save();
 
-    // If order is delivered, award reward points
+    // If order is delivered, award reward points via Transaction middleware (no manual increment)
     if (status === 'delivered' && order.rewards.pointsEarned > 0) {
       const user = await User.findById(order.user);
       if (user) {
-        user.rewardPoints += order.rewards.pointsEarned;
+        // Update only total spent here; rewardPoints will be updated by Transaction pre-save
         user.totalSpent += order.pricing.total;
         await user.save();
 
-        // Create earning transaction
+        // Create earning transaction to credit points
         await Transaction.createEarning({
           userId: order.user,
           orderId: order._id,

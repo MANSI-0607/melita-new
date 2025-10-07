@@ -6,6 +6,47 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, Truck, CheckCircle, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 
+// Resolve image URL similar to Orders.tsx
+const resolveImageUrl = (imagePath?: string): string => {
+  if (!imagePath) return '/placeholder-image.jpg';
+
+  // Absolute URL
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+
+  // Server uploads/static (served by API server)
+  if (imagePath.startsWith('/uploads')) {
+    return `${api.baseUrl}${imagePath}`;
+  }
+
+  // Public images (served by client)
+  if (imagePath.startsWith('/images')) {
+    return imagePath;
+  }
+
+  // Vite built assets
+  if (
+    imagePath.startsWith('/assets') ||
+    imagePath.startsWith('/src/assets') ||
+    imagePath.startsWith('assets/') ||
+    imagePath.startsWith('./assets')
+  ) {
+    const normalized = imagePath
+      .replace(/^\.\//, '/')
+      .replace(/^assets\//, '/assets/')
+      .replace('/src', '');
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
+  }
+
+  // Bare filename: assume it's a product image under public/images/products/
+  if (!imagePath.startsWith('/')) {
+    return `/images/products/${imagePath}`;
+  }
+
+  return imagePath;
+};
+
 interface OrderItem {
   product: string;
   name: string;
@@ -209,7 +250,7 @@ export default function OrderDetails() {
               <div key={idx} className="flex items-center justify-between p-3 rounded-md border">
                 <div className="flex items-center gap-3">
                   <img
-                    src={item.image?.startsWith('/') ? `${api.baseUrl}${item.image}` : item.image}
+                    src={resolveImageUrl(item.image)}
                     alt={item.name}
                     className="w-12 h-12 rounded object-cover"
                     loading="lazy"

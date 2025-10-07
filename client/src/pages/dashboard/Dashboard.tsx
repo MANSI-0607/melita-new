@@ -208,7 +208,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {recentOrders.map((o) => (
-                <div key={o._id} className="flex items-center justify-between p-3 rounded-md border">
+                <div key={o._id} className="flex items-center justify-between p-3 rounded-md border bg-gray-100">
                   <div>
                     <div className="text-sm font-semibold text-foreground">#{o.orderNumber}</div>
                     <div className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</div>
@@ -244,7 +244,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {recentTransactions.map((t) => (
-                <div key={t._id} className="flex items-center justify-between p-3 rounded-md border">
+                <div key={t._id} className="flex items-center justify-between p-3 rounded-md border bg-gray-100">
                   <div>
                     <div className="text-sm font-semibold text-foreground capitalize">{t.type}</div>
                     <div className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleDateString()}</div>

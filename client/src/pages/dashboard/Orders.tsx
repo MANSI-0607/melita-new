@@ -261,7 +261,7 @@ export default function Orders() {
 
       {/* Status Filter */}
       <div className="flex flex-wrap gap-2">
-        {['', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
+        {['', 'pending', 'confirmed', 'processing', 'shipped', 'delivered','seller orders', 'cancelled'].map((status) => (
           <Button
             key={status}
             variant={statusFilter === status ? 'default' : 'outline'}
@@ -353,7 +353,7 @@ export default function Orders() {
                             const imageUrl = resolveImageUrl(item.image || productData?.image);
                             
                             return (
-                              <div key={index} className="flex items-center space-x-2 bg-muted rounded-lg p-2">
+                              <div key={index} className="flex items-center space-x-2 rounded-lg p-2 bg-primary/5 border border-primary/10">
                                 <img
                                   src={imageUrl}
                                   alt={item.name}
@@ -377,7 +377,7 @@ export default function Orders() {
                             );
                           })}
                           {order.items.length > 3 && (
-                            <div className="flex items-center justify-center bg-muted rounded-lg p-2 px-4">
+                            <div className="flex items-center justify-center rounded-lg p-2 px-4 bg-primary/5 border border-primary/10">
                               <span className="text-xs font-medium text-muted-foreground">
                                 +{order.items.length - 3} more
                               </span>

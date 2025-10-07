@@ -27,6 +27,9 @@ interface SellerStats {
   salesToday: number;
   salesThisMonth: number;
   ordersToday: number;
+  ordersThisMonth: number;
+  totalSales: number;
+  totalOrders: number;
 }
 
 interface Seller {
@@ -37,7 +40,14 @@ interface Seller {
 }
 
 const SellerDashboard: React.FC = () => {
-  const [stats, setStats] = useState<SellerStats>({ salesToday: 0, salesThisMonth: 0, ordersToday: 0 });
+  const [stats, setStats] = useState<SellerStats>({ 
+    salesToday: 0, 
+    salesThisMonth: 0, 
+    ordersToday: 0,
+    ordersThisMonth: 0,
+    totalSales: 0,
+    totalOrders: 0
+  });
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -47,7 +57,7 @@ const SellerDashboard: React.FC = () => {
   // Check authentication
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('sellerToken');
+      const token = localStorage.getItem('melita_seller_token');
       const sellerInfo = localStorage.getItem('sellerInfo');
 
       if (!token || !sellerInfo) {
@@ -60,7 +70,7 @@ const SellerDashboard: React.FC = () => {
         setSeller(sellerData);
       } catch (error) {
         console.error('Error parsing seller info:', error);
-        localStorage.removeItem('sellerToken');
+        localStorage.removeItem('melita_seller_token');
         localStorage.removeItem('sellerInfo');
         navigate('/seller');
       }
@@ -74,18 +84,39 @@ const SellerDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/sellers/dashboard-stats');
-      const data = (response as any).data;
-      if (data.success) {
-        setStats(data.data);
+      const response = await api.get('/sellers/dashboard-stats') as { success: boolean; data: SellerStats };
+      
+      if (response.success && response.data) {
+        setStats(response.data);
+      } else {
+        console.error('Dashboard stats failed:', response);
+        // Set default values if API fails
+        setStats({
+          salesToday: 0,
+          salesThisMonth: 0,
+          ordersToday: 0,
+          ordersThisMonth: 0,
+          totalSales: 0,
+          totalOrders: 0
+        });
       }
     } catch (error: any) {
       console.error('Failed to fetch stats:', error);
       if (error.response?.status === 401) {
         // Token expired or invalid
-        localStorage.removeItem('sellerToken');
+        localStorage.removeItem('melita_seller_token');
         localStorage.removeItem('sellerInfo');
         navigate('/seller');
+      } else {
+        // Set default values on error
+        setStats({
+          salesToday: 0,
+          salesThisMonth: 0,
+          ordersToday: 0,
+          ordersThisMonth: 0,
+          totalSales: 0,
+          totalOrders: 0
+        });
       }
     } finally {
       setLoading(false);
@@ -99,7 +130,7 @@ const SellerDashboard: React.FC = () => {
   }, [seller]);
 
   const handleLogout = () => {
-    localStorage.removeItem('sellerToken');
+    localStorage.removeItem('melita_seller_token');
     localStorage.removeItem('sellerInfo');
     toast({
       description: 'Logged out successfully'
@@ -122,49 +153,114 @@ const SellerDashboard: React.FC = () => {
       case 'dashboard':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardContent className="p-6">
+            {/* --- Top Highlights (Larger Cards) --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Total Sales */}
+              <Card className="transform transition hover:scale-[1.02]">
+                <CardContent className="p-8 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <DollarSign className="w-6 h-6 text-green-600" />
+                    <div className="p-4 bg-emerald-100 rounded-2xl">
+                      <DollarSign className="w-10 h-10 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Sales (Today)</p>
-                      <p className="text-2xl font-bold text-green-600">₹{stats.salesToday.toFixed(2)}</p>
+                      <p className="text-lg text-gray-600">Total Sales</p>
+                      <p className="text-4xl font-bold text-emerald-600">
+                        ₹{stats.totalSales.toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardContent className="p-6">
+  
+              {/* Total Orders */}
+              <Card className="transform transition hover:scale-[1.02]">
+                <CardContent className="p-8 flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-blue-600" />
+                    <div className="p-4 bg-orange-100 rounded-2xl">
+                      <Package className="w-10 h-10 text-orange-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Sales (This Month)</p>
-                      <p className="text-2xl font-bold text-blue-600">₹{stats.salesThisMonth.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Package className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Orders (Today)</p>
-                      <p className="text-2xl font-bold text-purple-600">{stats.ordersToday}</p>
+                      <p className="text-lg text-gray-600">Total Orders</p>
+                      <p className="text-4xl font-bold text-orange-600">
+                        {stats.totalOrders}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+  
+            {/* --- Smaller Metric Cards --- */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Orders Today */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-purple-100 rounded-lg">
+                      <Package className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Orders (Today)</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {stats.ordersToday}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+  
+              {/* Sales Today */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-green-100 rounded-lg">
+                      <DollarSign className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Sales (Today)</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        ₹{stats.salesToday.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+  
+              {/* Orders This Month */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-indigo-100 rounded-lg">
+                      <Package className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Orders (This Month)</p>
+                      <p className="text-2xl font-bold text-indigo-600">
+                        {stats.ordersThisMonth}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+  
+              {/* Sales This Month */}
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <TrendingUp className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Sales (This Month)</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        ₹{stats.salesThisMonth.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+  
 
             <Card>
               <CardHeader>

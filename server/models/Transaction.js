@@ -14,12 +14,12 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['earn', 'redeem', 'expire', 'refund', 'bonus', 'penalty', 'purchase'],
+      enum: ['earn', 'redeem', 'expire', 'refund', 'purchase'],
       required: true
     },
     category: {
       type: String,
-      enum: ['purchase', 'referral', 'review', 'signup', 'birthday', 'promotion', 'cashback', 'points', 'penalty'],
+      enum: ['purchase','referral', 'promotion', 'cashback', 'points'],
       required: true
     },
     amount: {

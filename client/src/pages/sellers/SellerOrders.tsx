@@ -25,9 +25,12 @@ interface OrderItem {
     images: string[];
   };
   name: string;
+  slug: string;
+  image: string;
   price: number;
+  originalPrice: number;
   quantity: number;
-  total: number;
+  subtotal: number;
 }
 
 interface Order {
@@ -120,6 +123,7 @@ const SellerOrders: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'seller orders': return 'bg-blue-100 text-blue-800';
       case 'sellerOrder': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -130,6 +134,7 @@ const SellerOrders: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
+      case 'seller orders': return 'Seller Order';
       case 'sellerOrder': return 'Seller Order';
       case 'completed': return 'Completed';
       case 'pending': return 'Pending';
@@ -165,6 +170,34 @@ const SellerOrders: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      
+      {/* Summary Stats */}
+      {orders.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{orders.length}</div>
+              <div className="text-sm text-gray-600">Total Orders</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">
+                ₹{orders.reduce((sum, order) => sum + order.pricing.total, 0).toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-600">Total Revenue</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                ₹{orders.length > 0 ? (orders.reduce((sum, order) => sum + order.pricing.total, 0) / orders.length).toFixed(2) : '0.00'}
+              </div>
+              <div className="text-sm text-gray-600">Avg. Order Value</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -205,7 +238,7 @@ const SellerOrders: React.FC = () => {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm"
               >
                 <option value="all">All Status</option>
-                <option value="sellerOrder">Seller Orders</option>
+                <option value="seller orders">Seller Orders</option>
                 <option value="completed">Completed</option>
                 <option value="pending">Pending</option>
                 <option value="cancelled">Cancelled</option>
@@ -230,7 +263,7 @@ const SellerOrders: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
-                <Card key={order._id} className="border border-gray-200">
+                <Card key={order._id} className="border border-gray-200 bg-gray-50">
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {/* Order Header */}
@@ -276,16 +309,16 @@ const SellerOrders: React.FC = () => {
                             <span>{order.user.phone}</span>
                           </div>
                         </div>
-                        {order.metadata.couponUsed && (
+                        {order.metadata?.couponUsed && (
                           <div className="flex items-center space-x-1 text-sm text-green-600">
                             <Gift className="w-3 h-3" />
-                            <span>{order.metadata.couponUsed}</span>
+                            <span>{order.metadata?.couponUsed}</span>
                           </div>
                         )}
-                        {order.metadata.coinsUsed > 0 && (
+                        {(order.metadata?.coinsUsed || 0) > 0 && (
                           <div className="flex items-center space-x-1 text-sm text-blue-600">
                             <Coins className="w-3 h-3" />
-                            <span>{order.metadata.coinsUsed} coins</span>
+                            <span>{order.metadata?.coinsUsed} coins</span>
                           </div>
                         )}
                       </div>
@@ -306,7 +339,7 @@ const SellerOrders: React.FC = () => {
                                 </p>
                               </div>
                               <p className="font-medium text-sm">
-                                ₹{item.total.toFixed(2)}
+                                ₹{item.subtotal.toFixed(2)}
                               </p>
                             </div>
                           ))}
@@ -366,33 +399,6 @@ const SellerOrders: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Summary Stats */}
-      {orders.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{orders.length}</div>
-              <div className="text-sm text-gray-600">Total Orders</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                ₹{orders.reduce((sum, order) => sum + order.pricing.total, 0).toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-600">Total Revenue</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                ₹{orders.length > 0 ? (orders.reduce((sum, order) => sum + order.pricing.total, 0) / orders.length).toFixed(2) : '0.00'}
-              </div>
-              <div className="text-sm text-gray-600">Avg. Order Value</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };

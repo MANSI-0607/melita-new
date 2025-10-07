@@ -147,7 +147,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded','sellerOrder'],
+      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded','seller orders'],
       default: 'pending'
     },
     payment: {
@@ -190,6 +190,29 @@ const orderSchema = new mongoose.Schema(
         min: 0
       },
       cashbackEarned: {
+        type: Number,
+        default: 0,
+        min: 0
+      }
+    },
+    metadata: {
+      sellerId: {
+        type: String,
+        required: false
+      },
+      sellerName: {
+        type: String,
+        required: false
+      },
+      couponUsed: {
+        type: String,
+        required: false
+      },
+      couponId: {
+        type: String,
+        required: false
+      },
+      coinsUsed: {
         type: Number,
         default: 0,
         min: 0

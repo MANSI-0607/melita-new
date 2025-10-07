@@ -43,10 +43,31 @@ const sellerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  totalOrders: {
+    type: Number,
+    default: 0
+  },
   totalCustomers: {
     type: Number,
     default: 0
   },
+  salesData: {
+    today: {
+      sales: { type: Number, default: 0 },
+      orders: { type: Number, default: 0 },
+      date: { type: Date, default: Date.now }
+    },
+    thisMonth: {
+      sales: { type: Number, default: 0 },
+      orders: { type: Number, default: 0 },
+      month: { type: Number, default: () => new Date().getMonth() },
+      year: { type: Number, default: () => new Date().getFullYear() }
+    }
+  },
+  orderIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order'
+  }],
   isActive: {
     type: Boolean,
     default: true
@@ -86,6 +107,46 @@ sellerSchema.statics.findActive = function() {
 // Static method to find sellers by contact
 sellerSchema.statics.findByContact = function(contact) {
   return this.findOne({ contact });
+};
+
+// Instance method to update sales data
+sellerSchema.methods.updateSalesData = async function(orderAmount, orderId) {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  // Check if today's date needs reset
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (!this.salesData.today.date || this.salesData.today.date < todayStart) {
+    this.salesData.today.sales = 0;
+    this.salesData.today.orders = 0;
+    this.salesData.today.date = today;
+  }
+  
+  // Check if month needs reset
+  if (this.salesData.thisMonth.month !== currentMonth || this.salesData.thisMonth.year !== currentYear) {
+    this.salesData.thisMonth.sales = 0;
+    this.salesData.thisMonth.orders = 0;
+    this.salesData.thisMonth.month = currentMonth;
+    this.salesData.thisMonth.year = currentYear;
+  }
+  
+  // Update sales data
+  this.salesData.today.sales += orderAmount;
+  this.salesData.today.orders += 1;
+  this.salesData.thisMonth.sales += orderAmount;
+  this.salesData.thisMonth.orders += 1;
+  
+  // Update totals
+  this.totalSales += orderAmount;
+  this.totalOrders += 1;
+  
+  // Add order ID if not already present
+  if (!this.orderIds.includes(orderId)) {
+    this.orderIds.push(orderId);
+  }
+  
+  return this.save();
 };
 
 // Virtual for formatted joined date

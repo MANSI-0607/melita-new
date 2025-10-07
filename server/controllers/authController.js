@@ -117,7 +117,7 @@ export async function sendOtp(req, res) {
       user.otpSendWindowStart = now;
       user.otpSendCount = 0;
     }
-    const MAX_SENDS_PER_WINDOW = 5;
+    const MAX_SENDS_PER_WINDOW = 8;
     if ((user.otpSendCount || 0) >= MAX_SENDS_PER_WINDOW) {
       return res.status(429).json({
         message: 'Too many OTP requests. Please try again in an hour.'
@@ -136,7 +136,8 @@ export async function sendOtp(req, res) {
       console.log(`DEV MODE: OTP for ${normalizedPhone}: ${otp}`);
       return res.json({
         message: 'OTP sent successfully (dev mode)',
-        success: true
+        success: true,
+        devOtp: otp,
       });
     }
 
@@ -170,7 +171,7 @@ export async function sendOtp(req, res) {
       if (isDevIpBlocked) {
         console.warn('Fast2SMS dev API IP blocked. Falling back to DEV OTP delivery.');
         console.log(`DEV MODE (fallback): OTP for ${normalizedPhone}: ${otp}`);
-        return res.json({ message: 'OTP sent successfully (dev mode fallback)', success: true });
+        return res.json({ message: 'OTP sent successfully (dev mode fallback)', success: true, devOtp: otp });
       }
 
       console.error('Fast2SMS send error:', message);

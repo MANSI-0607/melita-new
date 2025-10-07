@@ -37,7 +37,11 @@ interface Product {
   price: number;
   originalPrice: number;
   category: string;
-  images: string[];
+  images: {
+    primary: string;
+    hover?: string;
+    gallery?: string[];
+  };
   inventory: {
     stock: number;
   };
@@ -98,7 +102,7 @@ const RecordSale: React.FC = () => {
   const fetchProducts = async () => {
     setLoadingProducts(true);
     try {
-      const response = await api.get<{ success: boolean; data: { products: Product[] } }>('/admin/products?status=active&limit=100');
+      const response = await api.get<{ success: boolean; data: { products: Product[] } }>('/sellers/products?limit=100');
       if (response.success) {
         setProducts(response.data.products);
       }
@@ -106,7 +110,7 @@ const RecordSale: React.FC = () => {
       console.error('Fetch products error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch products',
+        description: 'Failed to fetch products. Please check your login status.',
         variant: 'destructive'
       });
     } finally {
@@ -139,6 +143,13 @@ const RecordSale: React.FC = () => {
       setSelectedCoupon(null);
     }
   }, [selectedCustomer]);
+
+  // Auto-deselect coupon if subtotal becomes ineligible
+  useEffect(() => {
+    if (selectedCoupon && getSubtotal() < selectedCoupon.minOrderAmount) {
+      setSelectedCoupon(null);
+    }
+  }, [cart, selectedCoupon]);
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product._id === product._id);
@@ -234,10 +245,20 @@ const RecordSale: React.FC = () => {
 
       if (response.success) {
         setStep('otp');
-        toast({
-          title: 'OTP Sent',
-          description: 'Verification code sent to customer\'s mobile number'
-        });
+        const devOtp = (response as any).devOtp as string | undefined;
+        if (devOtp) {
+          // Prefill for convenience in dev mode
+          setOtp(devOtp);
+          toast({
+            title: 'OTP Sent (DEV)',
+            description: `DEV OTP: ${devOtp}`,
+          });
+        } else {
+          toast({
+            title: 'OTP Sent',
+            description: 'Verification code sent to customer\'s mobile number'
+          });
+        }
       } else {
         toast({
           title: 'Error',
@@ -284,9 +305,11 @@ const RecordSale: React.FC = () => {
 
       if (response.success) {
         setStep('success');
+        // Refresh customer data to show updated points
+        fetchCustomers();
         toast({
           title: 'Sale Completed',
-          description: 'Order has been successfully recorded'
+          description: `Order ${response.data?.orderNumber || ''} has been successfully recorded`
         });
       } else {
         toast({
@@ -315,6 +338,8 @@ const RecordSale: React.FC = () => {
     setOtp('');
     setStep('setup');
     setSelectedProductId('');
+    // Refresh products to get updated stock
+    fetchProducts();
   };
 
   const filteredCustomers = customers; // dropdown lists all; search removed for compact UI
@@ -408,6 +433,10 @@ const RecordSale: React.FC = () => {
                     <span>-₹{getCoinsDiscount().toFixed(2)}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-purple-600">
+                  <span>Points Earned:</span>
+                  <span>+{Math.round(getFinalTotal() * 0.10)} points</span>
+                </div>
                 <div className="flex justify-between font-medium text-lg border-t pt-1">
                   <span>Total:</span>
                   <span>₹{getFinalTotal().toFixed(2)}</span>
@@ -592,142 +621,150 @@ const RecordSale: React.FC = () => {
         </Card>
       )}
 
-      {/* Coupons & Coins */}
-      {selectedCustomer && cart.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Gift className="w-5 h-5" />
-              <span>Coupons & Coins</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Available Coupons */}
-            <div className="space-y-2">
-              <Label>Available Coupons</Label>
-              {availableCoupons.length === 0 ? (
-                <p className="text-sm text-gray-600">No coupons available for this customer</p>
-              ) : (
-                <div className="space-y-2">
-                  {availableCoupons.map((coupon) => (
-                    <div
-                      key={coupon._id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedCoupon?._id === coupon._id
-                          ? 'border-green-500 bg-green-50'
-                          : 'hover:border-gray-300'
-                      } ${getSubtotal() < coupon.minOrderAmount ? 'opacity-50' : ''}`}
-                      onClick={() => {
-                        if (getSubtotal() >= coupon.minOrderAmount) {
-                          setSelectedCoupon(selectedCoupon?._id === coupon._id ? null : coupon);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{coupon.code}</p>
-                          <p className="text-sm text-gray-600">{coupon.description}</p>
-                          <p className="text-xs text-gray-500">
-                            Min order: ₹{coupon.minOrderAmount}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-green-600">
-                            {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
-                          </p>
-                          {getSubtotal() < coupon.minOrderAmount && (
-                            <p className="text-xs text-red-500">Not eligible</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Coins */}
-            <div className="space-y-2">
-              <Label>Use Reward Coins</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="number"
-                  placeholder="Enter coins to use"
-                  value={coinsToUse || ''}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value) || 0;
-                    const maxCoins = Math.min(
-                      selectedCustomer.rewardPoints,
-                      getSubtotal() - getCouponDiscount()
-                    );
-                    setCoinsToUse(Math.min(value, maxCoins));
-                  }}
-                  max={Math.min(selectedCustomer.rewardPoints, getSubtotal() - getCouponDiscount())}
-                  className="flex-1"
-                />
-                <div className="text-sm text-gray-600">
-                  Available: {selectedCustomer.rewardPoints} coins
+     {/* Coupons & Coins */}
+{selectedCustomer && cart.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center space-x-2">
+        <Gift className="w-5 h-5" />
+        <span>Coupons & Coins</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      {/* Available Coupons */}
+      <div className="space-y-2">
+        <Label>Available Coupons</Label>
+        {availableCoupons
+          .filter(c => getSubtotal() >= c.minOrderAmount)
+          .map((coupon, index, self) =>
+            self.indexOf(coupon) === index ? (
+              <div
+                key={coupon._id}
+                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                  selectedCoupon?._id === coupon._id
+                    ? 'border-green-500 bg-green-50'
+                    : 'hover:border-gray-300'
+                }`}
+                onClick={() => {
+                  setSelectedCoupon(
+                    selectedCoupon?._id === coupon._id ? null : coupon
+                  );
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{coupon.code}</p>
+                    <p className="text-sm text-gray-600">{coupon.description}</p>
+                    <p className="text-xs text-gray-500">
+                      Min order: ₹{coupon.minOrderAmount}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-green-600">
+                      {coupon.type === 'percentage'
+                        ? `${coupon.value}% OFF`
+                        : `₹${coupon.value} OFF`}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            ) : null
+          )}
+      </div>
 
-      {/* Payment Summary */}
-      {selectedCustomer && cart.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <DollarSign className="w-5 h-5" />
-              <span>Payment Summary</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>₹{getSubtotal().toFixed(2)}</span>
-              </div>
-              {getCouponDiscount() > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Coupon Discount ({selectedCoupon?.code}):</span>
-                  <span>-₹{getCouponDiscount().toFixed(2)}</span>
-                </div>
-              )}
-              {getCoinsDiscount() > 0 && (
-                <div className="flex justify-between text-blue-600">
-                  <span>Coins Used ({coinsToUse} coins):</span>
-                  <span>-₹{getCoinsDiscount().toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                <span>Final Total:</span>
-                <span>₹{getFinalTotal().toFixed(2)}</span>
-              </div>
-            </div>
+      {/* Use Reward Coins */}
+      <div className="space-y-2">
+        <Label>Use Reward Coins</Label>
+        <div className="flex items-center space-x-2">
+          <Input
+            type="number"
+            value={coinsToUse || ''}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 0;
+              const maxCoins = Math.min(
+                selectedCustomer.rewardPoints,
+                getSubtotal() - getCouponDiscount()
+              );
+              setCoinsToUse(Math.min(value, maxCoins));
+            }}
+            max={Math.min(
+              selectedCustomer.rewardPoints,
+              getSubtotal() - getCouponDiscount()
+            )}
+            className="flex-1"
+          />
+          <div className="text-sm text-gray-600">
+            Available: {selectedCustomer.rewardPoints} coins
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
 
-            <Button
-              onClick={handleConfirmPayment}
-              disabled={loading}
-              className="w-full"
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending OTP...
-                </>
-              ) : (
-                <>
-                  <Phone className="w-4 h-4 mr-2" />
-                  Confirm Payment - Send OTP
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+{/* Payment Summary */}
+{selectedCustomer && cart.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center space-x-2">
+        <DollarSign className="w-5 h-5" />
+        <span>Payment Summary</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span>Subtotal:</span>
+          <span>₹{getSubtotal().toFixed(2)}</span>
+        </div>
+
+        {getCouponDiscount() > 0 && (
+          <div className="flex justify-between text-green-600">
+            <span>Coupon Discount ({selectedCoupon?.code}):</span>
+            <span>-₹{getCouponDiscount().toFixed(2)}</span>
+          </div>
+        )}
+
+        {getCoinsDiscount() > 0 && (
+          <div className="flex justify-between text-blue-600">
+            <span>Coins Used ({coinsToUse} coins):</span>
+            <span>-₹{getCoinsDiscount().toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between text-purple-600">
+          <span>Points Earned:</span>
+          <span>+{Math.round(getFinalTotal() * 0.1)} points</span>
+        </div>
+
+        <div className="flex justify-between text-lg font-semibold border-t pt-2">
+          <span>Final Total:</span>
+          <span>₹{getFinalTotal().toFixed(2)}</span>
+        </div>
+      </div>
+
+      <Button
+        onClick={handleConfirmPayment}
+        disabled={loading}
+        className="w-full"
+        size="lg"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Sending OTP...
+          </>
+        ) : (
+          <>
+            <Phone className="w-4 h-4 mr-2" />
+            Confirm Payment - Send OTP
+          </>
+        )}
+      </Button>
+    </CardContent>
+  </Card>
+)}
+
     </div>
   );
 };

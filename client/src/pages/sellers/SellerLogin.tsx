@@ -27,7 +27,7 @@ const SellerLogin: React.FC = () => {
 
       if (raw?.success) {
         // Store token and seller info
-        localStorage.setItem('sellerToken', raw.data.token);
+        localStorage.setItem('melita_seller_token', raw.data.token);
         localStorage.setItem('sellerInfo', JSON.stringify(raw.data.seller));
 
         toast({

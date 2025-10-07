@@ -12,7 +12,7 @@ async function request<T>(method: HttpMethod, path: string, body?: any, init?: R
   // Choose token based on route namespace: use admin token only for /admin endpoints
   const adminToken = localStorage.getItem('melita_admin_token');
   const userToken = localStorage.getItem('melita_token');
-  const sellerToken = localStorage.getItem('sellerToken');
+  const sellerToken = localStorage.getItem('melita_seller_token');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   // Treat both /admin and /coupons namespaces as admin-protected APIs
   const isAdminPath = ['/admin', '/coupons'].some(p => normalizedPath.startsWith(p));

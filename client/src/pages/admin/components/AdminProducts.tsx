@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react';
+import { handleApiResponse, createApiErrorHandler } from '@/utils/errorHandler';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -104,17 +105,17 @@ const AdminProducts: React.FC = () => {
         },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch products');
-      
-      const data = await response.json();
+      const data = await handleApiResponse(response);
       setProducts((data?.data?.products) || data.products || []);
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch products',
-        variant: 'destructive',
+      const errorHandler = createApiErrorHandler('fetch products', (err) => {
+        toast({
+          title: 'Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       });
+      errorHandler(error);
     } finally {
       setLoading(false);
     }
@@ -133,23 +134,25 @@ const AdminProducts: React.FC = () => {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error('Failed to create product');
+      const data = await handleApiResponse(response);
 
       toast({
         title: 'Success',
-        description: 'Product created successfully',
+        description: data.message || 'Product created successfully',
       });
 
       setIsCreateDialogOpen(false);
       setFormData({});
       fetchProducts();
     } catch (error) {
-      console.error('Error creating product:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create product',
-        variant: 'destructive',
+      const errorHandler = createApiErrorHandler('create product', (err) => {
+        toast({
+          title: 'Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       });
+      errorHandler(error);
     }
   };
 
@@ -168,11 +171,11 @@ const AdminProducts: React.FC = () => {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error('Failed to update product');
+      const data = await handleApiResponse(response);
 
       toast({
         title: 'Success',
-        description: 'Product updated successfully',
+        description: data.message || 'Product updated successfully',
       });
 
       setIsEditDialogOpen(false);
@@ -180,17 +183,19 @@ const AdminProducts: React.FC = () => {
       setFormData({});
       fetchProducts();
     } catch (error) {
-      console.error('Error updating product:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update product',
-        variant: 'destructive',
+      const errorHandler = createApiErrorHandler('update product', (err) => {
+        toast({
+          title: 'Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       });
+      errorHandler(error);
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
 
     try {
       const token = localStorage.getItem('melita_admin_token');
@@ -201,21 +206,23 @@ const AdminProducts: React.FC = () => {
         },
       });
 
-      if (!response.ok) throw new Error('Failed to delete product');
+      const data = await handleApiResponse(response);
 
       toast({
         title: 'Success',
-        description: 'Product deleted successfully',
+        description: data.message || 'Product deleted successfully',
       });
 
       fetchProducts();
     } catch (error) {
-      console.error('Error deleting product:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete product',
-        variant: 'destructive',
+      const errorHandler = createApiErrorHandler('delete product', (err) => {
+        toast({
+          title: 'Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       });
+      errorHandler(error);
     }
   };
 
@@ -231,21 +238,23 @@ const AdminProducts: React.FC = () => {
         body: JSON.stringify({ isActive }),
       });
 
-      if (!response.ok) throw new Error('Failed to update product status');
+      const data = await handleApiResponse(response);
 
       toast({
         title: 'Success',
-        description: `Product ${isActive ? 'activated' : 'deactivated'} successfully`,
+        description: data.message || `Product ${isActive ? 'activated' : 'deactivated'} successfully`,
       });
 
       fetchProducts();
     } catch (error) {
-      console.error('Error updating product status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update product status',
-        variant: 'destructive',
+      const errorHandler = createApiErrorHandler('update product status', (err) => {
+        toast({
+          title: 'Error',
+          description: err.message,
+          variant: 'destructive',
+        });
       });
+      errorHandler(error);
     }
   };
 
@@ -280,6 +289,9 @@ const AdminProducts: React.FC = () => {
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  // Ensure a deterministic order: sort by Mongo ObjectId string (_id)
+  const sortedProducts = [...filteredProducts].sort((a, b) => a._id.localeCompare(b._id));
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading products...</div>;
@@ -346,7 +358,7 @@ const AdminProducts: React.FC = () => {
       {/* Products Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Products ({filteredProducts.length})</CardTitle>
+          <CardTitle>Products ({sortedProducts.length})</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -362,7 +374,7 @@ const AdminProducts: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
+              {sortedProducts.map((product) => (
                 <TableRow key={product._id}>
                   <TableCell>
                     <img
