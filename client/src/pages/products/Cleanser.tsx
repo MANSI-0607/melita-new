@@ -128,52 +128,65 @@ const Cleanser = () => {
         <div className="relative w-full min-h-[300px] px-4 py-12 overflow-hidden bg-cover bg-center rounded-2xl" style={{ backgroundImage: `url(${howmob})` }} />
       </section>
 
-      {/* What's Inside */}
-      <section className="max-w-7xl mx-auto mt-12 px-4">
-        <h2 className="text-center text-3xl font-bold text-green-800 mb-12 uppercase tracking-wide">What's Inside?</h2>
-        <div className="bg-orange-100 rounded-3xl p-8 shadow-lg">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <h3 className="text-green-800 font-bold uppercase text-lg mb-6">Key Ingredients</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {ingredientNames.map((ingredientName) => {
-                  const title = productIngredients?.find(i => i.name === ingredientName)?.title || fallbackIngredients[ingredientName]?.title || ingredientName;
-                  return (
-                    <button
-                      key={ingredientName}
-                      onClick={() => setSelectedIngredient(ingredientName)}
-                      className={`py-3 px-4 rounded-full text-sm font-medium transition-all duration-200 text-center border-2 ${
-                        selectedIngredient === ingredientName
-                          ? 'bg-amber-800 text-white border-amber-800 shadow-md'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-amber-600 hover:bg-amber-50'
-                      }`}
-                    >
-                      {title}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="lg:col-span-3 bg-gray-100 rounded-2xl p-6 md:p-10 shadow-lg min-h-[250px]">
-              <h3 className="text-xl md:text-3xl font-headingTwo font-medium text-gray-900 mb-4">{currentIngredient?.title || selectedIngredient}</h3>
-              <p className="text-gray-700 mb-8 leading-relaxed">{currentIngredient?.description}</p>
-              {currentIngredient?.benefits && currentIngredient.benefits.length > 0 && (
-                <>
-                  <h4 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-wide">Good For</h4>
-                  <div className="space-y-3">
-                    {currentIngredient.benefits.map((benefit: string, idx: number) => (
-                      <div key={idx} className="flex items-start space-x-3">
-                        <Check className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700 leading-relaxed">{benefit}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+     {/* What's Inside */}
+<section className="max-w-7xl mx-auto mt-12 px-4">
+  <h2 className="text-center text-xl sm:text-3xl font-semibold uppercase text-[#1e4323] mb-8">
+    What's Inside?
+  </h2>
+
+  <div className="relative max-w-7xl mx-auto rounded-2xl py-16 px-8 bg-[#F8DFC1]">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+
+      {/* LEFT: Key Ingredients */}
+      <div className="space-y-6">
+        <h3 className="text-[#1e4323] font-semibold uppercase text-lg mb-6">Key Ingredients</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {ingredientNames.map((ingredientName) => {
+            const title = productIngredients?.find(i => i.name === ingredientName)?.title || fallbackIngredients[ingredientName]?.title || ingredientName;
+            return (
+              <button
+                key={ingredientName}
+                onClick={() => setSelectedIngredient(ingredientName)}
+                className={`py-3 px-4 rounded-full font-medium text-center transition-all duration-200 text-sm border-2 ${
+                  selectedIngredient === ingredientName
+                    ? 'bg-[#835339] text-gray-50 border-[#f0e4d4] shadow-md'
+                    : 'bg-gray-100 text-gray-900 border-white/60 hover:bg-white/10'
+                }`}
+              >
+                {title}
+              </button>
+            );
+          })}
         </div>
-      </section>
+      </div>
+
+      {/* RIGHT: Details Card */}
+      <div className="bg-gray-100 rounded-2xl p-6 md:p-10 shadow-lg min-h-[250px]">
+        <h3 className="text-xl md:text-3xl font-medium text-gray-900 mb-4">
+          {currentIngredient?.title || selectedIngredient}
+        </h3>
+        <p className="text-gray-700 mb-6 leading-relaxed">
+          {currentIngredient?.description}
+        </p>
+
+        {currentIngredient?.benefits && currentIngredient.benefits.length > 0 && (
+          <div>
+            <h4 className="text-md md:text-lg font-medium text-gray-900 mb-3">Good For</h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {currentIngredient.benefits.map((benefit, idx) => (
+                <li key={idx} className="flex items-center space-x-2">
+                  <Check className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                  <span className="text-gray-700">{benefit}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
+</section>
 
       {/* How To Use */}
       <section className="hidden md:block w-full mt-12 px-4">

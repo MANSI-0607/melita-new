@@ -54,7 +54,7 @@ const Header = () => {
   };
 
   return (
-    <header className={`${isHome ? 'sticky top-0' : ''} relative z-50 bg-[#F5F0E8] border-b border-[#D4B5A0]/30 py-4 px-4 sm:px-6 backdrop-blur-sm`}>
+    <header className={`${isHome ? 'sticky top-0' : ''} relative  bg-white shadow-md z-50  border-b border-[#D4B5A0]/30 py-4 px-4 sm:px-6 backdrop-blur-sm`}>
       {/* Navigation */}
       <nav>
         <div className="max-w-6xl mx-auto px-1 sm:px-3 relative grid grid-cols-3 items-center">

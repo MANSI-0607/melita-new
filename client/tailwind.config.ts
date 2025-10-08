@@ -88,10 +88,12 @@ export default {
         "gradient-hero": "var(--gradient-hero)",
         "gradient-product": "var(--gradient-product)",
       },
+    
       boxShadow: {
         soft: "var(--shadow-soft)",
         luxury: "var(--shadow-luxury)",
         product: "var(--shadow-product)",
+        lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
       },
       transitionTimingFunction: {
         smooth: "cubic-bezier(0.4, 0, 0.2, 1)",

@@ -323,7 +323,8 @@ const Checkout: React.FC = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json(); 
+        console.log(data);
         setAvailableCoupons(data.coupons || []);
       }
     } catch (error) {
@@ -857,8 +858,8 @@ const Checkout: React.FC = () => {
           <div className="flex items-center justify-center space-x-12">
             {[
               { step: 1, title: 'Address', icon: MapPin },
-              { step: 2, title: 'Shipping', icon: Truck },
-              { step: 3, title: 'Payment', icon: CreditCard },
+              // Shipping step hidden
+              { step: 2, title: 'Payment', icon: CreditCard },
             ].map(({ step, title, icon: Icon }) => (
               <div key={step} className="flex flex-col items-center">
                 <div
@@ -1041,90 +1042,28 @@ const Checkout: React.FC = () => {
               {/* Continue button (always available - disabled until address selected) */}
               <div className="flex justify-end mt-8">
                 <Button onClick={() => setCurrentStep(2)} disabled={!selectedAddressId} className="bg-[#835339] hover:bg-[#6b3d2a]">
-                  Continue to Shipping
-                </Button>
-              </div>
-            </section>
-
-            {/* Step 2: Shipping */}
-            <section
-              className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 ${
-                currentStep === 2 ? 'block' : 'hidden'
-              }`}
-            >
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">2. Shipping Method</h2>
-
-              <RadioGroup
-                value={shippingMethod.id}
-                onValueChange={(value: string) => {
-                  const method = [
-                    {
-                      id: 'free-standard',
-                      label: 'Free Shipping',
-                      delivery_est: '5-7 business days',
-                      charge: 0,
-                    },
-                    {
-                      id: 'express',
-                      label: 'Express Shipping',
-                      delivery_est: '2-3 business days',
-                      charge: 99,
-                    },
-                  ].find((m) => m.id === value);
-                  if (method) setShippingMethod(method);
-                }}
-              >
-                <div className="space-y-4">
-                  {[
-                    {
-                      id: 'free-standard',
-                      label: 'Free Shipping',
-                      delivery_est: '5-7 business days',
-                      charge: 0,
-                    },
-                    // {
-                    //   id: 'express',
-                    //   label: 'Express Shipping',
-                    //   delivery_est: '2-3 business days',
-                    //   charge: 99,
-                    // },
-                  ].map((method) => (
-                    <label
-                      key={method.id}
-                      className={`block p-6 border rounded-xl cursor-pointer transition-colors ${
-                        shippingMethod.id === method.id ? 'border-[#835339] bg-[#fdfaf8]' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <RadioGroupItem value={method.id} className="mr-4" />
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{method.label}</p>
-                          <p className="text-sm text-gray-600">{method.delivery_est}</p>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900">{method.charge > 0 ? `₹${method.charge.toFixed(2)}` : 'Free'}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </RadioGroup>
-
-              <div className="flex justify-between mt-8">
-                <Button onClick={() => setCurrentStep(1)} variant="outline">
-                  Back
-                </Button>
-                <Button onClick={() => setCurrentStep(3)} className="bg-[#835339] hover:bg-[#6b3d2a]">
                   Continue to Payment
                 </Button>
               </div>
             </section>
 
-            {/* Step 3: Payment */}
+            {/* Step 2: Shipping (hidden)
             <section
               className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 ${
-                currentStep === 3 ? 'block' : 'hidden'
+                currentStep === 2 ? 'block' : 'hidden'
               }`}
             >
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">3. Payment Method</h2>
+              ...
+            </section>
+            */}
+
+            {/* Step 2: Payment */}
+            <section
+              className={`bg-white rounded-xl shadow-lg p-8 transition-all duration-300 ${
+                currentStep === 2 ? 'block' : 'hidden'
+              }`}
+            >
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">2. Payment Method</h2>
 
               <RadioGroup value={paymentMethod} onValueChange={(value: string) => setPaymentMethod(value as 'razorpay' | 'cod')}>
                 <div className="space-y-4">
@@ -1184,7 +1123,7 @@ const Checkout: React.FC = () => {
                   <p className="text-sm text-gray-600">No shipping address selected.</p>
                 )}
 
-                <div className="flex justify-between items-center pt-2 border-t">
+                {/* <div className="flex justify-between items-center pt-2 border-t">
                   <h3 className="text-sm font-medium text-gray-500">Shipping Method</h3>
                   <Button onClick={() => setCurrentStep(2)} variant="ghost" size="sm" className="text-[#835339] hover:underline">
                     Change
@@ -1193,7 +1132,7 @@ const Checkout: React.FC = () => {
                 <div className="text-sm text-gray-700">
                   <p className="font-medium">{shippingMethod.label}</p>
                   <p>{shippingMethod.delivery_est}</p>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex justify-end mt-8">
@@ -1229,74 +1168,105 @@ const Checkout: React.FC = () => {
               </div>
 
               <div className="border-t pt-6 space-y-6">
-                {/* Coupon Section */}
-                <div>
-                  <button
-                    onClick={() => setShowCoupons((s) => !s)}
-                    className="w-full flex justify-between items-center text-left text-sm font-semibold text-[#835339] mb-2"
-                  >
-                    <span>Have a coupon code?</span>
-                    {showCoupons ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  {showCoupons && (
-                    <div className="space-y-2 transition-all duration-300">
-                      <div className="flex space-x-2">
-                        <Input
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value)}
-                          placeholder="Enter code"
-                          disabled={!!appliedCoupon || isLoading}
-                          className="flex-1"
-                        />
-                        {appliedCoupon ? (
-                          <Button onClick={removeCoupon} disabled={isLoading} variant="outline" size="sm" className="text-red-600">
-                            Remove
-                          </Button>
-                        ) : (
-                          <Button onClick={applyCoupon} disabled={!couponCode || isLoading} variant="outline" size="sm">
-                            Apply
-                          </Button>
-                        )}
-                      </div>
-                      {couponMessage && <p className={`text-xs ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>{couponMessage}</p>}
-                      {/* Available coupons from backend */}
-                      {availableCoupons?.length > 0 && (
-                        <div className="mt-2 border-t pt-3 space-y-2">
-                          <p className="text-xs text-gray-500">Available coupons</p>
-                          <div className="space-y-2 max-h-40 overflow-auto pr-1">
-                            {availableCoupons.map((c: any) => {
-                              const meetsMin = (subtotal || 0) >= (c.minOrderAmount || 0);
-                              const disabled = !!appliedCoupon || isLoading || !meetsMin;
-                              return (
-                                <div key={c._id || c.code} className="flex items-start justify-between gap-3 p-2 rounded-md border">
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">{c.code}</p>
-                                    {c.description && (
-                                      <p className="text-xs text-gray-600">{c.description}</p>
-                                    )}
-                                    <p className="text-[11px] text-gray-500">
-                                      {c.type === 'percentage' ? `${c.value}% off` : `₹${c.value} off`}
-                                      {c.minOrderAmount ? ` • Min order ₹${c.minOrderAmount}` : ''}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={disabled}
-                                    onClick={() => applyCouponFromList(c.code)}
-                                  >
-                                    {meetsMin ? 'Apply' : 'Not Eligible'}
-                                  </Button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {/* Removed separate below-the-input Remove control; action toggles on main button */}
-                    </div>
-                  )}
+             
+ {/* Coupon Section */}
+<div>
+  {/* Toggle Coupon Input */}
+  <button
+    onClick={() => setShowCoupons((s) => !s)}
+    className="w-full flex justify-between items-center text-left text-sm font-semibold text-[#835339] mb-2"
+  >
+    <span>Have a coupon code?</span>
+    {showCoupons ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+  </button>
+
+  {showCoupons && (
+    <div className="space-y-2 transition-all duration-300">
+      {/* Manual Coupon Entry */}
+      <div className="flex space-x-2">
+        <Input
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          placeholder="Enter code"
+          disabled={!!appliedCoupon || isLoading}
+          className="flex-1"
+        />
+        {appliedCoupon ? (
+          <Button
+            onClick={removeCoupon}
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+            className="text-red-600"
+          >
+            Remove
+          </Button>
+        ) : (
+          <Button
+            onClick={applyCoupon}
+            disabled={!couponCode || isLoading}
+            variant="outline"
+            size="sm"
+          >
+            Apply
+          </Button>
+        )}
+      </div>
+
+      {/* Coupon Message */}
+      {couponMessage && (
+        <p className={`text-xs ${appliedCoupon ? 'text-green-600' : 'text-red-600'}`}>
+          {couponMessage}
+        </p>
+      )}
+
+      {/* Available Coupons List */}
+      {availableCoupons?.length > 0 && (
+        <div className="mt-2 border-t pt-3 space-y-2">
+          <p className="text-xs text-gray-500">Available coupons</p>
+          <div className="space-y-2 max-h-40 overflow-auto pr-1">
+            {availableCoupons.map((c: any) => {
+              const meetsMin = (subtotal || 0) >= (c.minOrderAmount || 0);
+              const isThisApplied = appliedCoupon === c.code;
+
+              // Disabled if another coupon is applied or conditions not met
+              const disabled = (!isThisApplied && !!appliedCoupon) || isLoading || !meetsMin;
+
+              return (
+                <div
+                  key={c._id || c.code}
+                  className={`flex items-start justify-between gap-3 p-2 rounded-md border ${
+                    disabled && !isThisApplied ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
+                  }`}
+                  onClick={() => !disabled && applyCouponFromList(c.code)}
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{c.code}</p>
+                    {c.description && (
+                      <p className="text-xs text-gray-600">{c.description}</p>
+                    )}
+                    <p className="text-[11px] text-gray-500">
+                      {c.type === 'percentage' ? `${c.value}% off` : `₹${c.value} off`}
+                      {c.minOrderAmount ? ` • Min order ₹${c.minOrderAmount}` : ''}
+                    </p>
+                  </div>
+
+                  {isThisApplied ? (
+                    <p className="text-xs text-green-600">Applied</p>
+                  ) : !meetsMin ? (
+                    <p className="text-xs text-gray-400">Not Eligible</p>
+                  ) : null}
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )}
+</div>
+
+
 
                 {/* Super Coins Section */}
                 {userCoins > 0 && (

@@ -83,11 +83,24 @@ export const addAddress = asyncHandler(async (req, res) => {
 
 // Get available coupons
 export const getAvailableCoupons = asyncHandler(async (req, res) => {
-  // Fetch active global/user coupons
-  const coupons = await Coupon.find({ 
-    $or: [
-      { userId: req.user.id, isActive: true },
-      { isGlobal: true, isActive: true }
+  // Fetch active coupons eligible for this user (global, direct, or group-specific), within validity window
+  const now = new Date();
+  const orConditions = [
+    { isGlobal: true },
+    { userId: req.user._id },
+    { allowedUserIds: req.user._id },
+  ];
+  if (req.user?.phone) {
+    orConditions.push({ userPhone: req.user.phone });
+    orConditions.push({ allowedPhones: req.user.phone });
+  }
+
+  const coupons = await Coupon.find({
+    isActive: true,
+    $and: [
+      { $or: orConditions },
+      { validFrom: { $lte: now } },
+      { $or: [ { validUntil: null }, { validUntil: { $gte: now } } ] }
     ]
   }).sort({ createdAt: -1 });
 
@@ -118,6 +131,8 @@ export const applyCoupon = asyncHandler(async (req, res) => {
     $or: [
       { userId: req.user.id, isActive: true },
       { userPhone: req.user.phone, isActive: true },
+      { allowedUserIds: req.user._id, isActive: true },
+      { allowedPhones: req.user.phone, isActive: true },
       { isGlobal: true, isActive: true }
     ]
   });
@@ -192,11 +207,10 @@ export const createCodOrder = asyncHandler(async (req, res) => {
   const shippingCost = Math.max(0, shippingMethod?.charge || 0);
   const tax = 0; // include GST here if needed
 
-  // Discounts
+  // Discounts - separate coupon and reward points
   const couponDiscount = coupon ? (coupon.type === 'percentage' ? Math.round((subtotal * coupon.value) / 100) : coupon.value) : 0;
   const rewardPointsUsed = Math.max(0, coinsUsed || 0);
-  const discount = Math.max(0, couponDiscount);
-  const total = Math.max(0, subtotal + shippingCost + tax - discount - rewardPointsUsed);
+  const total = Math.max(0, subtotal + shippingCost + tax - couponDiscount - rewardPointsUsed);
 
   // Map shipping method id to enum
   const shippingMethodMap = {
@@ -218,7 +232,7 @@ export const createCodOrder = asyncHandler(async (req, res) => {
     shippingAddress: addressDoc.formatForShipping(),
     pricing: {
       subtotal,
-      discount,
+      discount: couponDiscount, // Only coupon discount
       rewardPointsUsed,
       shipping: shippingCost,
       tax,
@@ -239,9 +253,9 @@ export const createCodOrder = asyncHandler(async (req, res) => {
     shipping: {
       method: shippingMethodEnum,
     },
-    // Rewards: 10% of final total (after discounts and coins)
+    // Rewards: 10% of subtotal (before any discounts)
     rewards: {
-      pointsEarned: Math.round(total * 0.1),
+      pointsEarned: Math.round(subtotal * 0.1),
       pointsUsed: rewardPointsUsed,
       cashbackEarned: 0,
     },
@@ -288,8 +302,8 @@ export const createCodOrder = asyncHandler(async (req, res) => {
         source: 'purchase'
       });
     }
-    // Record reward points earning for COD (10% of final total)
-    const pointsToCredit = Math.round(total * 0.1);
+    // Record reward points earning for COD (10% of subtotal)
+    const pointsToCredit = Math.round(subtotal * 0.1);
     if (pointsToCredit > 0) {
       await Transaction.createEarning({
         userId: req.user._id,
@@ -303,8 +317,8 @@ export const createCodOrder = asyncHandler(async (req, res) => {
       });
     }
 
-    // Record coupon usage (one-time tracking) if a coupon was applied
-    if (discount > 0 && coupon?.code) {
+    // Record coupon usage (separate from reward points) if a coupon was applied
+    if (couponDiscount > 0 && coupon?.code) {
       // Idempotency: ensure not duplicated for same order
       const existingCouponTx = await Transaction.findOne({
         user: req.user._id,
@@ -318,10 +332,10 @@ export const createCodOrder = asyncHandler(async (req, res) => {
           order: savedOrder._id,
           type: 'redeem',
           category: 'promotion',
-          amount: discount,
-          description: `Used coupon '${coupon.code}'`,
+          amount: couponDiscount,
+          description: `Used coupon '${coupon.code}' - ₹${couponDiscount} discount`,
           reference: savedOrder.orderNumber,
-          points: { redeemed: discount, balance: 0 },
+          points: { balance: 0 }, // No points involved in coupon usage
           status: 'completed',
           metadata: { source: 'coupon', couponId: String(coupon._id), code: coupon.code }
         });
@@ -404,8 +418,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
   const tax = 0;
   const couponDiscount = coupon ? (coupon.type === 'percentage' ? Math.round((subtotal * coupon.value) / 100) : coupon.value) : 0;
   const rewardPointsUsed = Math.max(0, coinsUsed || 0);
-  const discount = Math.max(0, couponDiscount);
-  const total = Math.max(0, subtotal + shippingCost + tax - discount - rewardPointsUsed);
+  const total = Math.max(0, subtotal + shippingCost + tax - couponDiscount - rewardPointsUsed);
 
   // Validate environment keys
   const keyId = (process.env.RAZORPAY_KEY_ID || '').trim();
@@ -481,7 +494,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     shippingAddress: addressDoc.formatForShipping(),
     pricing: {
       subtotal,
-      discount,
+      discount: couponDiscount, // Only coupon discount
       rewardPointsUsed,
       shipping: shippingCost,
       tax,
@@ -502,7 +515,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
       gatewayResponse: { razorpayOrderId: razorpayOrder.id },
     },
     shipping: { method: shippingMethodEnum },
-    // Rewards: 1% of subtotal (consistent with seller orders)
+    // Rewards: 10% of subtotal (before any discounts)
     rewards: { pointsEarned: Math.round(subtotal * 0.1), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
     // Add metadata for coupon tracking (consistent with seller flow)
     metadata: {
@@ -622,7 +635,7 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
       });
     }
 
-    // Coupon usage record after successful online payment
+    // Coupon usage record after successful online payment (separate from reward points)
     if (order?.pricing?.discount > 0 && order?.coupon?.code) {
       const existingCouponTx = await Transaction.findOne({
         user: req.user._id,
@@ -637,9 +650,9 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
           type: 'redeem',
           category: 'promotion',
           amount: order.pricing.discount,
-          description: `Used coupon '${order.coupon.code}'`,
+          description: `Used coupon '${order.coupon.code}' - ₹${order.pricing.discount} discount`,
           reference: razorpay_payment_id,
-          points: { redeemed: order.pricing.discount, balance: 0 },
+          points: { balance: 0 }, // No points involved in coupon usage
           status: 'completed',
           metadata: { source: 'coupon', couponId: String(order.coupon.id), code: order.coupon.code }
         });

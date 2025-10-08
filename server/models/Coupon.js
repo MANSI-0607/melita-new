@@ -28,6 +28,17 @@ const couponSchema = new mongoose.Schema({
     default: null, // For linking coupons to specific phone numbers
     trim: true
   },
+  // New: allow linking the coupon to MULTIPLE specific users by id or phone
+  allowedUserIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: undefined
+  }],
+  allowedPhones: [{
+    type: String,
+    trim: true,
+    default: undefined
+  }],
   isGlobal: {
     type: Boolean,
     default: false
@@ -69,6 +80,8 @@ const couponSchema = new mongoose.Schema({
 couponSchema.index({ code: 1 });
 couponSchema.index({ userId: 1, isActive: 1 });
 couponSchema.index({ userPhone: 1, isActive: 1 });
+couponSchema.index({ allowedUserIds: 1, isActive: 1 });
+couponSchema.index({ allowedPhones: 1, isActive: 1 });
 couponSchema.index({ isGlobal: 1, isActive: 1 });
 
 const Coupon = mongoose.model('Coupon', couponSchema);

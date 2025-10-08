@@ -36,6 +36,8 @@ interface Coupon {
     phone: string;
   };
   userPhone?: string;
+  allowedUserIds?: Array<{ _id: string; name?: string; phone?: string }>;
+  allowedPhones?: string[];
   isGlobal: boolean;
   isActive: boolean;
   usageLimit: number;
@@ -79,7 +81,8 @@ const CouponManagement = () => {
     validUntil: '',
     description: '',
     isGlobal: false,
-    userPhone: ''
+    userPhone: '',
+    allowedPhonesText: '' // comma or newline separated phones
   });
 
   useEffect(() => {
@@ -137,6 +140,13 @@ const CouponManagement = () => {
     e.preventDefault();
     
     try {
+      // Parse multiple phones from textarea
+      const allowedPhones = (formData.allowedPhonesText || '')
+        .split(/[,\n]/)
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => s.replace(/\D/g, ''))
+        .filter(s => s.length >= 10);
       const payload = {
         ...formData,
         value: parseFloat(formData.value),
@@ -144,7 +154,9 @@ const CouponManagement = () => {
         minOrderAmount: parseFloat(formData.minOrderAmount),
         maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : undefined,
         validFrom: formData.validFrom || undefined,
-        validUntil: formData.validUntil || undefined
+        validUntil: formData.validUntil || undefined,
+        // backend expects arrays, keep backward compatibility for single phone
+        allowedPhones: allowedPhones.length ? allowedPhones : undefined
       };
 
       if (editingCoupon) {
@@ -198,7 +210,10 @@ const CouponManagement = () => {
       validFrom: coupon.validFrom ? format(new Date(coupon.validFrom), 'yyyy-MM-dd') : '',
       validUntil: coupon.validUntil ? format(new Date(coupon.validUntil), 'yyyy-MM-dd') : '',
       description: coupon.description || '',
-      userPhone: coupon.userPhone || ''
+      userPhone: coupon.userPhone || '',
+      allowedPhonesText: (coupon.allowedPhones && coupon.allowedPhones.length)
+        ? coupon.allowedPhones.join(',')
+        : ''
     });
     setIsDialogOpen(true);
   };
@@ -253,7 +268,8 @@ const CouponManagement = () => {
       validUntil: '',
       description: '',
       isGlobal: true,
-      userPhone: ''
+      userPhone: '',
+      allowedPhonesText: ''
     });
     setEditingCoupon(null);
   };
@@ -416,7 +432,7 @@ const CouponManagement = () => {
 
               {!formData.isGlobal && (
                 <div>
-                  <Label htmlFor="userPhone">User Phone Number</Label>
+                  <Label htmlFor="userPhone">User Phone Number (single)</Label>
                   <Input
                     id="userPhone"
                     value={formData.userPhone}
@@ -425,8 +441,20 @@ const CouponManagement = () => {
                     type="tel"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Leave empty for general coupon, or enter phone number to restrict to specific user
+                    Optional: Single specific user (use field below for multiple users)
                   </p>
+                  <div className="mt-4">
+                    <Label htmlFor="allowedPhonesText">Specific Users (multiple phones)</Label>
+                    <Textarea
+                      id="allowedPhonesText"
+                      value={formData.allowedPhonesText}
+                      onChange={(e) => setFormData({ ...formData, allowedPhonesText: e.target.value })}
+                      placeholder="Enter multiple phone numbers separated by comma or new lines"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      You can paste a list. Non-digits will be stripped; minimum 10 digits per phone.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -625,6 +653,8 @@ const CouponManagement = () => {
                             </div>
                           ) : coupon.userPhone ? (
                             <div className="text-gray-600">{coupon.userPhone}</div>
+                          ) : (coupon.allowedPhones && coupon.allowedPhones.length) ? (
+                            <div className="text-gray-600">{coupon.allowedPhones.length} users (phones)</div>
                           ) : (
                             <span className="text-gray-500">No user linked</span>
                           )}

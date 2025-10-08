@@ -76,44 +76,44 @@ const productRecommendations = {
   ],
   balanced: [
     {
-      name: "Gentle Purifying Cleanser",
+      name: "Melita Renewing Gel Cleanser",
       image: cleanser1,
       link: "/products/cleanser",
     },
     {
-      name: "Balancing Skin Essence",
+      name: "Melita Ultra Hydrating Essence",
       image: essence1,
       link: "/products/essence",
     },
     {
-      name: "Lightweight Moisturizer",
+      name: "Melita Balancing Moisturizer",
       image: moisturizer1,
       link: "/products/moisturizer",
     },
     {
-      name: "Everyday Broad-Spectrum SPF",
+      name: "Melita Ultra Protecting Sunscreen",
       image: sunscreen1,
       link: "/products/sunscreen",
     },
   ],
   resilient: [
     {
-      name: "Gentle Daily Cleanser",
+      name: "Melita Renewing Gel Cleanser",
       image: cleanser1,
       link: "/products/cleanser",
     },
     {
-      name: "Hydra-Boost Essence",
+      name: "Melita Ultra Hydrating Essence",
       image: essence1,
       link: "/products/essence",
     },
     {
-      name: "Light Moisturizing Gel",
+      name: "Melita Balancing Moisturizer",
       image: moisturizer1,
       link: "/products/moisturizer",
     },
     {
-      name: "Broad-Spectrum SPF 30",
+      name: "Melita Ultra Protecting Sunscreen",
       image: sunscreen1,
       link: "/products/sunscreen",
     },

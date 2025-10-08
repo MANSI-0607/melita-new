@@ -1549,6 +1549,8 @@ export const createAdminCoupon = async (req, res) => {
       value,
       userId,
       userPhone,
+      allowedPhones, // new: array of phones
+      allowedUserIds, // new: array of userIds
       isGlobal,
       usageLimit,
       minOrderAmount,
@@ -1597,19 +1599,23 @@ export const createAdminCoupon = async (req, res) => {
       });
     }
     
-    // Determine scope and link user by id or phone for user-specific coupons
+    // Determine scope and link users by id or phone for user-specific coupons
     let resolvedUserId = null;
     let resolvedUserPhone = null;
+    let resolvedAllowedUserIds = [];
+    let resolvedAllowedPhones = [];
     
     if (isGlobal) {
       resolvedUserId = null;
       resolvedUserPhone = null;
     } else {
-      // User-specific: require either userId or userPhone
-      if (!userId && !userPhone) {
+      // User-specific: require at least one of userId, userPhone, allowedPhones[], allowedUserIds[]
+      const normalizedArrayPhones = Array.isArray(allowedPhones) ? allowedPhones : [];
+      const normalizedArrayUserIds = Array.isArray(allowedUserIds) ? allowedUserIds : [];
+      if (!userId && !userPhone && normalizedArrayPhones.length === 0 && normalizedArrayUserIds.length === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Provide either userId or userPhone for a user-specific coupon, or set isGlobal to true'
+          message: 'Provide userId/userPhone or allowedPhones/allowedUserIds for a user-specific coupon, or set isGlobal to true'
         });
       }
 
@@ -1634,6 +1640,23 @@ export const createAdminCoupon = async (req, res) => {
         resolvedUserId = user._id;
         resolvedUserPhone = user.phone;
       }
+
+      // Resolve multiple phones to users
+      if (normalizedArrayPhones.length > 0) {
+        const cleaned = normalizedArrayPhones
+          .map(p => String(p || '').replace(/\D/g, ''))
+          .filter(p => p.length >= 10);
+        const users = await User.find({ phone: { $in: cleaned } }).select('_id phone');
+        resolvedAllowedUserIds = users.map(u => u._id);
+        resolvedAllowedPhones = users.map(u => u.phone);
+        // Include any phones that didn't match users yet (optional: enforce existing users only)
+      }
+
+      // Include any provided userIds directly
+      if (normalizedArrayUserIds.length > 0) {
+        const uniqueIds = [...new Set(normalizedArrayUserIds.map(String))];
+        resolvedAllowedUserIds = [...new Set([...resolvedAllowedUserIds.map(String), ...uniqueIds])].map(id => id);
+      }
     }
     
     // Create coupon
@@ -1643,6 +1666,8 @@ export const createAdminCoupon = async (req, res) => {
       value,
       userId: resolvedUserId,
       userPhone: resolvedUserPhone,
+      allowedUserIds: resolvedAllowedUserIds?.length ? resolvedAllowedUserIds : undefined,
+      allowedPhones: resolvedAllowedPhones?.length ? resolvedAllowedPhones : undefined,
       isGlobal: isGlobal || false,
       usageLimit: usageLimit || 1,
       minOrderAmount: minOrderAmount || 0,
@@ -1656,6 +1681,7 @@ export const createAdminCoupon = async (req, res) => {
     
     // Populate user data for response
     await coupon.populate('userId', 'name email phone');
+    await coupon.populate('allowedUserIds', 'name email phone');
     
     res.status(201).json({
       success: true,
@@ -1681,6 +1707,8 @@ export const updateAdminCoupon = async (req, res) => {
       value,
       userId,
       userPhone,
+      allowedPhones, // new
+      allowedUserIds, // new
       isGlobal,
       isActive,
       usageLimit,
@@ -1735,7 +1763,7 @@ export const updateAdminCoupon = async (req, res) => {
     }
     
     // Handle user linking for updates
-    if (isGlobal === false && (userId || userPhone)) {
+    if (isGlobal === false && (userId || userPhone || (Array.isArray(allowedPhones) && allowedPhones.length) || (Array.isArray(allowedUserIds) && allowedUserIds.length))) {
       let targetUser = null;
       if (userId) {
         targetUser = await User.findById(userId);
@@ -1743,15 +1771,32 @@ export const updateAdminCoupon = async (req, res) => {
         targetUser = await User.findOne({ phone: userPhone });
       }
       
-      if (!targetUser) {
+      if (!targetUser && !userPhone && !(Array.isArray(allowedPhones) && allowedPhones.length) && !(Array.isArray(allowedUserIds) && allowedUserIds.length)) {
         return res.status(400).json({
           success: false,
           message: 'User not found'
         });
       }
       
-      coupon.userId = targetUser._id;
-      coupon.userPhone = targetUser.phone;
+      if (targetUser) {
+        coupon.userId = targetUser._id;
+        coupon.userPhone = targetUser.phone;
+      }
+      // Merge arrays
+      let resolvedAllowedUserIds = coupon.allowedUserIds?.map(String) || [];
+      let resolvedAllowedPhones = coupon.allowedPhones || [];
+      if (Array.isArray(allowedPhones) && allowedPhones.length) {
+        const cleaned = allowedPhones.map(p => String(p || '').replace(/\D/g, '')).filter(p => p.length >= 10);
+        const users = await User.find({ phone: { $in: cleaned } }).select('_id phone');
+        resolvedAllowedUserIds = [...new Set([...resolvedAllowedUserIds, ...users.map(u => String(u._id))])];
+        resolvedAllowedPhones = [...new Set([...resolvedAllowedPhones, ...users.map(u => u.phone)])];
+      }
+      if (Array.isArray(allowedUserIds) && allowedUserIds.length) {
+        const uniqueIds = [...new Set(allowedUserIds.map(String))];
+        resolvedAllowedUserIds = [...new Set([...resolvedAllowedUserIds, ...uniqueIds])];
+      }
+      coupon.allowedUserIds = resolvedAllowedUserIds;
+      coupon.allowedPhones = resolvedAllowedPhones;
       coupon.isGlobal = false;
     }
     

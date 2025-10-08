@@ -20,6 +20,9 @@ export const getEligibleCoupons = async (req, res) => {
     if (user) {
       orConditions.push({ userId: user._id });
       if (user.phone) orConditions.push({ userPhone: user.phone });
+      // New: group-specific coupons
+      orConditions.push({ allowedUserIds: user._id });
+      if (user.phone) orConditions.push({ allowedPhones: user.phone });
     }
 
     const coupons = await Coupon.find({
@@ -127,6 +130,13 @@ export const validateCoupon = async (req, res) => {
       // Check by phone
       if (phone && coupon.userPhone && coupon.userPhone === phone) {
         isValidForUser = true;
+      }
+
+      // New: Check group-specific arrays
+      if (!isValidForUser) {
+        const matchedByAllowedId = userId && Array.isArray(coupon.allowedUserIds) && coupon.allowedUserIds.map(String).includes(String(userId));
+        const matchedByAllowedPhone = phone && Array.isArray(coupon.allowedPhones) && coupon.allowedPhones.includes(String(phone));
+        if (matchedByAllowedId || matchedByAllowedPhone) isValidForUser = true;
       }
       
       // If user-specific but no match found
