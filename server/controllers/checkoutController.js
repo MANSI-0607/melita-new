@@ -31,7 +31,7 @@ const sendOrderConfirmationSMS = async ({ phone, customerName, orderNumber }) =>
       sender_id,
       message,
       // Comma-separated values for {#VAR#} placeholders in the same order as template
-      variables_values: `${(customerName || '').trim()},${orderNumber}`,
+      variables_values: `${customerName},${orderNumber}`,
       numbers,
       flash,
       schedule_time: ''
@@ -332,8 +332,9 @@ export const createCodOrder = asyncHandler(async (req, res) => {
 
   // Fire-and-forget SMS (no await needed to avoid blocking response)
   try {
-    const customerName = `${addressDoc.first_name ?? ''} ${addressDoc.last_name ?? ''}`.trim();
-    sendOrderConfirmationSMS({ phone: addressDoc.phone, customerName, orderNumber });
+    const customerName = (req.user?.name || `${addressDoc.first_name ?? ''} ${addressDoc.last_name ?? ''}`.trim()).trim();
+    const phone = req.user?.phone || addressDoc.phone;
+    sendOrderConfirmationSMS({ phone, customerName, orderNumber });
   } catch {}
 
   res.status(201).json({
@@ -649,8 +650,9 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
 
   // Fire-and-forget SMS on successful online payment
   try {
-    const fullName = `${order?.shippingAddress?.first_name ?? ''} ${order?.shippingAddress?.last_name ?? ''}`.trim();
-    sendOrderConfirmationSMS({ phone: order?.shippingAddress?.phone, customerName: fullName, orderNumber: order.orderNumber });
+    const customerName = (req.user?.name || `${order?.shippingAddress?.first_name ?? ''} ${order?.shippingAddress?.last_name ?? ''}`.trim()).trim();
+    const phone = req.user?.phone || order?.shippingAddress?.phone;
+    sendOrderConfirmationSMS({ phone, customerName, orderNumber: order.orderNumber });
   } catch {}
 
   res.json({

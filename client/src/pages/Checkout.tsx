@@ -49,6 +49,12 @@ interface Coupon {
   already_used: number;
 }
 
+interface UserProfile {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { state: cartState, clearCart, closeCart } = useCart();
@@ -126,6 +132,7 @@ const Checkout: React.FC = () => {
   const [coinsToApply, setCoinsToApply] = useState<string>('');
   const [appliedCoins, setAppliedCoins] = useState<number>(0);
   const [userCoins, setUserCoins] = useState<number>(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   // Auth modal
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
 
@@ -267,6 +274,11 @@ const Checkout: React.FC = () => {
       if (response.ok) {
         const userData = await response.json();
         setUserCoins(userData.user?.rewardPoints || 0);
+        setUserProfile({
+          name: userData.user?.name || '',
+          phone: userData.user?.phone || '',
+          email: userData.user?.email || '',
+        });
       } else {
         // profile failed; don't break checkout; user may need to re-login
         console.error('Profile request failed:', response.status);
@@ -668,9 +680,9 @@ const Checkout: React.FC = () => {
           }
         },
         prefill: {
-          name: `${orderData.customer?.first_name ?? ''} ${orderData.customer?.last_name ?? ''}`.trim(),
-          email: orderData.customer?.email ?? '',
-          contact: orderData.customer?.phone ?? '',
+          name: (userProfile?.name && userProfile.name.trim()) || `${orderData.customer?.first_name ?? ''} ${orderData.customer?.last_name ?? ''}`.trim(),
+          email: (userProfile?.email && userProfile.email) || (orderData.customer?.email ?? ''),
+          contact: (userProfile?.phone && userProfile.phone) || (orderData.customer?.phone ?? ''),
         },
         theme: { color: '#835339' },
       };
