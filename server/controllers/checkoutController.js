@@ -31,7 +31,8 @@ const sendOrderConfirmationSMS = async ({ phone, customerName, orderNumber }) =>
       sender_id,
       message,
       // Comma-separated values for {#VAR#} placeholders in the same order as template
-      variables_values: `${customerName},${orderNumber}`,
+      variables_values: `${customerName}|${orderNumber}`,
+
       numbers,
       flash,
       schedule_time: ''

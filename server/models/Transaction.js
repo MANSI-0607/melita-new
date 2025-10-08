@@ -138,27 +138,63 @@ transactionSchema.virtual('displayPoints').get(function() {
 // Pre-save middleware to calculate points balance
 transactionSchema.pre('save', async function(next) {
   if (this.isNew) {
-    // Get user's current points balance
-    const user = await mongoose.model('User').findById(this.user);
-    if (user) {
-      const currentBalance = user.rewardPoints || 0;
-      
-      // Calculate new balance based on transaction type
-      if (this.type === 'earn') {
-        this.points.balance = currentBalance + this.points.earned;
-      } else if (this.type === 'redeem') {
-        this.points.balance = Math.max(0, currentBalance - this.points.redeemed);
-      } else if (this.type === 'expire') {
-        this.points.balance = Math.max(0, currentBalance - this.points.redeemed);
-      } else {
-        this.points.balance = currentBalance;
-      }
-      
-      // Update user's reward points
-      await mongoose.model('User').findByIdAndUpdate(
+    const User = mongoose.model('User');
+    
+    // Calculate new balance based on transaction type using atomic operations
+    if (this.type === 'earn') {
+      // Atomically increment user's reward points
+      const updatedUser = await User.findByIdAndUpdate(
         this.user,
-        { $set: { rewardPoints: this.points.balance } }
+        { $inc: { rewardPoints: this.points.earned } },
+        { new: true }
       );
+      if (updatedUser) {
+        this.points.balance = updatedUser.rewardPoints;
+      }
+    } else if (this.type === 'redeem') {
+      // Atomically decrement user's reward points (ensure non-negative)
+      const updatedUser = await User.findByIdAndUpdate(
+        this.user,
+        { $inc: { rewardPoints: -this.points.redeemed } },
+        { new: true }
+      );
+      if (updatedUser) {
+        // Ensure balance doesn't go negative
+        if (updatedUser.rewardPoints < 0) {
+          await User.findByIdAndUpdate(
+            this.user,
+            { $set: { rewardPoints: 0 } }
+          );
+          this.points.balance = 0;
+        } else {
+          this.points.balance = updatedUser.rewardPoints;
+        }
+      }
+    } else if (this.type === 'expire') {
+      // Atomically decrement user's reward points for expiration
+      const updatedUser = await User.findByIdAndUpdate(
+        this.user,
+        { $inc: { rewardPoints: -this.points.redeemed } },
+        { new: true }
+      );
+      if (updatedUser) {
+        // Ensure balance doesn't go negative
+        if (updatedUser.rewardPoints < 0) {
+          await User.findByIdAndUpdate(
+            this.user,
+            { $set: { rewardPoints: 0 } }
+          );
+          this.points.balance = 0;
+        } else {
+          this.points.balance = updatedUser.rewardPoints;
+        }
+      }
+    } else {
+      // For other transaction types, just record current balance
+      const user = await User.findById(this.user);
+      if (user) {
+        this.points.balance = user.rewardPoints || 0;
+      }
     }
   }
   next();
