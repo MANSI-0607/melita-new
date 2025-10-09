@@ -18,8 +18,8 @@ const sendOrderConfirmationSMS = async ({ phone, customerName, orderNumber }) =>
   try {
     const API_URL = 'https://www.fast2sms.com/dev/bulkV2';
     const API_KEY = process.env.FAST2SMS_API_KEY;
-    //const route = process.env.FAST2SMS_ROUTE || 'dlt';
-    const route = 'transactional';
+    const route = process.env.FAST2SMS_ROUTE || 'dlt';
+    //const route = 'transactional';
     const sender_id = process.env.FAST2SMS_SENDER_ID || 'MELITA';
     const message = process.env.FAST2SMS_TEMPLATE_ID_ORDER_CONFIRMATION || '184313';
     const flash = '0';
@@ -226,6 +226,9 @@ export const createCodOrder = asyncHandler(async (req, res) => {
   const timestamp = Date.now().toString().slice(-6);
   const orderNumber = `MLT${timestamp}${(orderCount + 1).toString().padStart(4, '0')}`;
 
+  // Adjusted subtotal used to compute reward earnings (after coupon and points, before shipping/tax)
+  const adjustedSubtotal = Math.max(0, subtotal - couponDiscount - rewardPointsUsed);
+
   const order = new Order({
     orderNumber,
     user: req.user._id,
@@ -254,9 +257,9 @@ export const createCodOrder = asyncHandler(async (req, res) => {
     shipping: {
       method: shippingMethodEnum,
     },
-    // Rewards: 10% of subtotal (before any discounts)
+    // Rewards: 10% of adjusted subtotal (after coupon and points, before shipping/tax)
     rewards: {
-      pointsEarned: Math.round(subtotal * 0.1),
+      pointsEarned: Math.round(adjustedSubtotal * 0.1),
       pointsUsed: rewardPointsUsed,
       cashbackEarned: 0,
     },
@@ -303,8 +306,8 @@ export const createCodOrder = asyncHandler(async (req, res) => {
         source: 'purchase'
       });
     }
-    // Record reward points earning for COD (10% of subtotal)
-    const pointsToCredit = Math.round(subtotal * 0.1);
+    // Record reward points earning for COD (10% of adjusted subtotal)
+    const pointsToCredit = Math.round(adjustedSubtotal * 0.1);
     if (pointsToCredit > 0) {
       await Transaction.createEarning({
         userId: req.user._id,
@@ -488,6 +491,9 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
   const timestamp = Date.now().toString().slice(-6);
   const orderNumber = `MLT${timestamp}${(orderCount + 1).toString().padStart(4, '0')}`;
 
+  // Adjusted subtotal used to compute reward earnings (after coupon and points, before shipping/tax)
+  const adjustedSubtotalRazorpay = Math.max(0, subtotal - couponDiscount - rewardPointsUsed);
+
   const order = new Order({
     orderNumber,
     user: req.user._id,
@@ -516,8 +522,8 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
       gatewayResponse: { razorpayOrderId: razorpayOrder.id },
     },
     shipping: { method: shippingMethodEnum },
-    // Rewards: 10% of subtotal (before any discounts)
-    rewards: { pointsEarned: Math.round(subtotal * 0.1), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
+    // Rewards: 10% of adjusted subtotal (after coupon and points, before shipping/tax)
+    rewards: { pointsEarned: Math.round(adjustedSubtotalRazorpay * 0.1), pointsUsed: rewardPointsUsed, cashbackEarned: 0 },
     // Add metadata for coupon tracking (consistent with seller flow)
     metadata: {
       couponId: coupon?._id || coupon?.id || null,

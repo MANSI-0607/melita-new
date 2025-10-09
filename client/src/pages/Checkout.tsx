@@ -809,9 +809,7 @@ const Checkout: React.FC = () => {
                 <span className="font-medium">Melita Coins Earned:</span> +{successCashback} Coins
               </p>
             )}
-            <p className="text-gray-700">
-              <span className="font-medium">Your Available Melita Coins:</span> {userCoins}
-            </p>
+           
           </div>
         </div>
       </div>
