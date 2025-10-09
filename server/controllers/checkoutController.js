@@ -18,7 +18,8 @@ const sendOrderConfirmationSMS = async ({ phone, customerName, orderNumber }) =>
   try {
     const API_URL = 'https://www.fast2sms.com/dev/bulkV2';
     const API_KEY = process.env.FAST2SMS_API_KEY;
-    const route = process.env.FAST2SMS_ROUTE || 'dlt';
+    //const route = process.env.FAST2SMS_ROUTE || 'dlt';
+    const route = 'transactional';
     const sender_id = process.env.FAST2SMS_SENDER_ID || 'MELITA';
     const message = process.env.FAST2SMS_TEMPLATE_ID_ORDER_CONFIRMATION || '184313';
     const flash = '0';
