@@ -14,7 +14,7 @@ const AdminSettings: React.FC = () => {
     siteName: 'Melita Luxury Skincare',
     siteDescription: 'Premium skincare products for Indian skin',
     contactEmail: 'admin@melita.in',
-    supportPhone: '+91-9876543210',
+    supportPhone: '+91-9685075434',
     maintenanceMode: false,
     allowRegistrations: true,
     emailNotifications: true,
