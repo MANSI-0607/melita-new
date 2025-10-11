@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { Search, User, Mail, Phone, Plus } from 'lucide-react';
+import { Search, User, Mail, Phone, Plus,Edit } from 'lucide-react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/$/, '');
 
@@ -24,13 +24,18 @@ interface User {
   lastLogin?: string;
   orderCount?: number;
   totalSpent?: number;
+  addedBy?: { name?: string } | null;
 }
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterAddedBy, setFilterAddedBy] = useState<'all'|'admin'|'seller'|'self'>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  // Inline reward points editing state (must be declared before any early returns)
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editPointsValue, setEditPointsValue] = useState<number>(0);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -56,7 +61,8 @@ const AdminUsers: React.FC = () => {
       if (!response.ok) throw new Error('Failed to fetch users');
       
       const data = await response.json();
-      setUsers((data?.data?.users) || data.users || []);
+      // The enhanced endpoint returns users in data.users
+      setUsers(data?.data?.users || data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -143,14 +149,79 @@ const AdminUsers: React.FC = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.phone.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+                         (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.phone || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Derive addedBy label - more robust checking
+    const addedByName = user.addedBy?.name;
+    let addedByLabel: 'admin'|'seller'|'self' = 'self'; // default to self
+    
+    if (addedByName) {
+      const label = addedByName.toLowerCase().trim();
+      if (label === 'admin') {
+        addedByLabel = 'admin';
+      } else if (label === 'seller') {
+        addedByLabel = 'seller';
+      }
+    }
+
+    const matchesAddedBy = filterAddedBy === 'all' ? true : addedByLabel === filterAddedBy;
+
+    return matchesSearch && matchesAddedBy;
   });
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading users...</div>;
   }
+
+  const startEditPoints = (user: User) => {
+    setEditingUserId(user._id);
+    setEditPointsValue(user.rewardPoints || 0);
+  };
+
+  const cancelEditPoints = () => {
+    setEditingUserId(null);
+    setEditPointsValue(0);
+  };
+
+  const saveEditPoints = async (userId: string) => {
+    try {
+      const user = users.find(u => u._id === userId);
+      if (!user) throw new Error('User not found');
+      const current = user.rewardPoints || 0;
+      const next = editPointsValue || 0;
+
+      if (next < 0) {
+        return toast({ title: 'Error', description: 'Reward points cannot be negative', variant: 'destructive' });
+      }
+
+      if (current === next) {
+        setEditingUserId(null);
+        return toast({ title: 'No change', description: 'Reward points unchanged' });
+      }
+
+      const token = localStorage.getItem('melita_admin_token');
+      const response = await fetch(`${API_BASE}/admin/users/${userId}/reward-points`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rewardPoints: next }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to update reward points');
+      }
+
+      toast({ title: 'Success', description: 'Reward points updated successfully' });
+      setEditingUserId(null);
+      fetchUsers();
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to update reward points', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -241,17 +312,32 @@ const AdminUsers: React.FC = () => {
         </Dialog>
       </div>
 
-      {/* Search */}
+      {/* Search and Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+            <div className="relative sm:col-span-2">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">Added By</Label>
+              <select
+                className="border rounded px-2 py-2 text-sm"
+                value={filterAddedBy}
+                onChange={(e) => setFilterAddedBy(e.target.value as any)}
+              >
+                <option value="all">All</option>
+                <option value="admin">Admin</option>
+                <option value="seller">Seller</option>
+                <option value="self">Self Joined</option>
+              </select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -268,6 +354,7 @@ const AdminUsers: React.FC = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Reward Points</TableHead>
+                <TableHead>Added By</TableHead>
                 <TableHead>Orders</TableHead>
                 <TableHead>Total Spent</TableHead>
                 <TableHead>Status</TableHead>
@@ -302,9 +389,36 @@ const AdminUsers: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">
-                      {user.rewardPoints} points
-                    </Badge>
+                    {editingUserId === user._id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          className="w-24 h-8"
+                          value={editPointsValue}
+                          onChange={(e) => setEditPointsValue(Math.max(0, parseInt(e.target.value) || 0))}
+                          min={0}
+                          step={1}
+                        />
+                        <Button size="sm" onClick={() => saveEditPoints(user._id)}>Save</Button>
+                        <Button size="sm" variant="outline" onClick={cancelEditPoints}>Cancel</Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{user.rewardPoints} points</Badge>
+                        <Button size="sm" variant="outline" onClick={() => startEditPoints(user)}><Edit></Edit></Button>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const addedByName = user.addedBy?.name;
+                      if (addedByName) {
+                        const label = addedByName.toLowerCase().trim();
+                        if (label === 'admin') return <Badge variant="secondary">Admin</Badge>;
+                        if (label === 'seller') return <Badge variant="outline">Seller</Badge>;
+                      }
+                      return <Badge variant="default">Self Joined</Badge>;
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">

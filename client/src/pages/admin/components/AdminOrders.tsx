@@ -203,7 +203,7 @@ const AdminOrders: React.FC = () => {
               <SelectContent>
                 <SelectItem value="all">All Payments</SelectItem>
                 <SelectItem value="cod">COD</SelectItem>
-                <SelectItem value="razorpay">Razorpay</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -13,6 +13,65 @@ const ADMIN_CREDENTIALS = {
   password: 'Kites@123'
 };
 
+// Update user reward points directly (admin only)
+export const updateUserRewardPoints = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rewardPoints } = req.body;
+
+    if (rewardPoints === undefined || rewardPoints === null || isNaN(Number(rewardPoints)) || Number(rewardPoints) < 0) {
+      return res.status(400).json({ success: false, message: 'rewardPoints must be a non-negative number' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const current = user.rewardPoints || 0;
+    const next = Number(rewardPoints);
+    const delta = next - current;
+
+    // Update points
+    user.rewardPoints = next;
+    await user.save();
+
+    // Attempt to create a transaction record for audit trail, but do not fail if it errors
+    try {
+      if (delta !== 0) {
+        if (delta > 0) {
+          await Transaction.createEarning({
+            userId: userId,
+            category: 'adjustment',
+            amount: delta,
+            points: delta,
+            description: `Admin adjusted points by +${delta}`,
+            source: 'admin'
+          });
+        } else {
+          const abs = Math.abs(delta);
+          await Transaction.createRedemption({
+            userId: userId,
+            category: 'adjustment',
+            amount: abs,
+            points: abs,
+            description: `Admin adjusted points by -${abs}`,
+            source: 'admin'
+          });
+        }
+      }
+    } catch (txErr) {
+      console.warn('Points updated but failed to create transaction record:', txErr?.message || txErr);
+      // Continue; points are updated regardless
+    }
+
+    return res.json({ success: true, message: 'Reward points updated', data: { userId, rewardPoints: next, delta } });
+  } catch (error) {
+    console.error('Update user reward points error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update reward points' });
+  }
+};
+
 // Admin login
 export const adminLogin = async (req, res) => {
   try {
@@ -1053,7 +1112,10 @@ export const updateReviewApproval = async (req, res) => {
 
     const review = await Review.findByIdAndUpdate(
       reviewId,
-      { isApproved },
+      { 
+        status: isApproved ? 'approved' : 'pending',
+        verified: isApproved // Set verified when approved
+      },
       { new: true }
     ).populate('user', 'name email').populate('product', 'name slug');
 
@@ -1063,6 +1125,9 @@ export const updateReviewApproval = async (req, res) => {
         message: 'Review not found'
       });
     }
+
+    // Update product ratings after approval status change
+    await Review.updateProductRatings(review.product._id);
 
     res.json({
       success: true,
@@ -1122,6 +1187,10 @@ export const getUsersEnhanced = async (req, res) => {
                 in: '$$order.pricing.total'
               }
             }
+          },
+          // Ensure addedBy is properly included
+          addedBy: {
+            $ifNull: ['$addedBy', { name: null }]
           }
         }
       },
@@ -1409,19 +1478,20 @@ export const getReviewsEnhanced = async (req, res) => {
     const { status, search } = req.query;
 
     const filter = {};
-    if (status === 'approved') filter.isApproved = true;
-    else if (status === 'pending') filter.isApproved = false;
-    else if (status === 'verified') filter.isVerified = true;
+    if (status === 'approved') filter.status = 'approved';
+    else if (status === 'pending') filter.status = 'pending';
+    else if (status === 'verified') filter.verified = true;
     
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { comment: { $regex: search, $options: 'i' } }
+        { reviewText: { $regex: search, $options: 'i' } },
+        { userName: { $regex: search, $options: 'i' } }
       ];
     }
 
     const reviews = await Review.find(filter)
-      .populate('user', 'name email')
+      .populate('user', 'name email phone')
       .populate('product', 'name slug')
       .sort({ createdAt: -1 })
       .skip(skip)

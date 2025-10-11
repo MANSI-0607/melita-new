@@ -141,9 +141,8 @@ reviewSchema.pre('save', async function(next) {
 
 // Post-save middleware to update product ratings
 reviewSchema.post('save', async function() {
-  if (this.status === 'approved') {
-    await this.constructor.updateProductRatings(this.product);
-  }
+  // Update ratings whenever a review is saved (status change triggers this)
+  await this.constructor.updateProductRatings(this.product);
 });
 
 // Post-remove middleware to update product ratings

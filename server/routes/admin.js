@@ -11,6 +11,7 @@ import {
   deleteUser,
   awardPoints,
   deductPoints,
+  updateUserRewardPoints,
   getOrders,
   getOrder,
   updateOrderStatus,
@@ -68,6 +69,7 @@ router.patch('/users/:userId/status', updateUserStatus);
 router.delete('/users/:userId', deleteUser);
 router.post('/users/:userId/award-points', awardPoints);
 router.post('/users/:userId/deduct-points', deductPoints);
+router.patch('/users/:userId/reward-points', updateUserRewardPoints);
 
 // Order management routes
 router.get('/orders', getOrdersEnhanced);

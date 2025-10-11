@@ -56,6 +56,19 @@ const Shop = () => {
                   alt={`${product.name} hover`}
                   className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
                 />
+                {/* Product Tags - Top Left */}
+                {product.tags && product.tags.length > 0 && (
+                  <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                    {product.tags.slice(0, 2).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="bg-gradient-to-r from-[#835339] to-[#5c3925] text-white text-xs font-semibold px-2 py-1 rounded-sm shadow-lg backdrop-blur-sm border border-white/20"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </Link>
 
               {/* Content */}

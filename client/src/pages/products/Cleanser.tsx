@@ -147,7 +147,7 @@ const Cleanser = () => {
               <button
                 key={ingredientName}
                 onClick={() => setSelectedIngredient(ingredientName)}
-                className={`py-3 px-4 rounded-full font-medium text-center transition-all duration-200 text-sm border-2 ${
+                className={`py-3 px-4 rounded-full font-headingTwo font-medium text-center transition-all duration-200 text-sm border-2 ${
                   selectedIngredient === ingredientName
                     ? 'bg-[#835339] text-gray-50 border-[#f0e4d4] shadow-md'
                     : 'bg-gray-100 text-gray-900 border-white/60 hover:bg-white/10'
@@ -171,7 +171,7 @@ const Cleanser = () => {
 
         {currentIngredient?.benefits && currentIngredient.benefits.length > 0 && (
           <div>
-            <h4 className="text-md md:text-lg font-medium text-gray-900 mb-3">Good For</h4>
+            <h4 className="text-md md:text-lg font-medium font-headingTwo text-gray-900 mb-3">GOOD FOR</h4>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {currentIngredient.benefits.map((benefit, idx) => (
                 <li key={idx} className="flex items-center space-x-2">

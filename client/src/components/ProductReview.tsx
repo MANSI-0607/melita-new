@@ -6,17 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useProductReviews, useCreateReview, useCanUserReview } from '@/hooks/useReviews';
+import { useProductReviews, useCreateReview } from '@/hooks/useReviews';
 import { getBackendProductIdFromSlug } from '@/utils/productMapping';
+import { api } from '@/lib/api';
+import AuthModal from '@/components/AuthModal';
 
 const ProductReview = ({slug }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingReviewAfterAuth, setPendingReviewAfterAuth] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [reviewForm, setReviewForm] = useState({
     title: '',
     reviewText: '',
     rating: 0
   });
+  // Local images state (data URLs) to submit with review
+  const [images, setImages] = useState<{ url: string; alt?: string }[]>([]);
   const { toast } = useToast();
 
   // Resolve backend product ID from slug
@@ -42,7 +48,17 @@ const ProductReview = ({slug }) => {
   // API hooks
   const { reviews, stats, loading, error, refetch } = useProductReviews(backendProductId || undefined);
   const { createReview, loading: creatingReview } = useCreateReview();
-  const { canReview, hasPurchased, verified, existingReview, loading: checkingReview } = useCanUserReview(backendProductId || undefined);
+
+  const isLoggedIn = () => !!localStorage.getItem('melita_token');
+
+  const handleOpenReviewClick = () => {
+    if (!isLoggedIn()) {
+      setPendingReviewAfterAuth(true);
+      setShowAuthModal(true);
+      return;
+    }
+    setShowReviewModal(true);
+  };
 
   // Use stats from API or fallback to calculated values
   const totalReviews = stats?.totalReviews || reviews.length;
@@ -59,38 +75,74 @@ const ProductReview = ({slug }) => {
   const getInitials = (name: string | undefined) =>
     name?.split(" ").map((n) => n[0]).join("").toUpperCase() || 'U';
 
+  const resolveImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    // Treat as backend-relative path (e.g., /uploads/...)
+    return `${api.baseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+  };
+
   // Handle form submission
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    
-    if (!canReview) {
-      toast({
-        title: "Cannot Review",
-        description: "You cannot review this product",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       await createReview(backendProductId, {
         rating: reviewForm.rating,
         title: reviewForm.title,
-        reviewText: reviewForm.reviewText
+        reviewText: reviewForm.reviewText,
+        images
       });
 
       // Reset form and close modal
       setReviewForm({ title: '', reviewText: '', rating: 0 });
       setUserRating(0);
       setShowReviewModal(false);
+      setImages([]);
       
       // Refresh reviews
       refetch();
+
+      // Custom thank you toast
+      toast({
+        title: 'Thanks for your review',
+        description: 'Your review has been submitted and will appear once approved.',
+      });
     } catch (error) {
       console.error('Failed to submit review:', error);
+      const msg = (error as any)?.message?.toString() || '';
+      if (/unauthorized|access\s*token\s*is\s*required|401/i.test(msg)) {
+        // Not logged in: prompt login
+        setShowReviewModal(false);
+        setShowAuthModal(true);
+        return;
+      }
     }
   };
 
+
+  // Handle image selection and preview as data URLs
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 4); // limit to 4 images
+    const toDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const previews: { url: string; alt?: string }[] = [];
+    for (const file of files) {
+      // basic type guard
+      if (!file.type.startsWith('image/')) continue;
+      const dataUrl = await toDataUrl(file);
+      previews.push({ url: dataUrl, alt: file.name });
+    }
+    setImages(previews);
+  };
+
+  const removeImageAt = (idx: number) => {
+    setImages(prev => prev.filter((_, i) => i !== idx));
+  };
 
   // Handle input changes
   const handleInputChange = (field, value) => {
@@ -163,13 +215,10 @@ const ProductReview = ({slug }) => {
             </p>
           </div>
           <Button
-            onClick={() => setShowReviewModal(true)}
-            disabled={!canReview || checkingReview}
-            className="font-headingTwo text-base text-white bg-[#835339] border border-[#835339] px-6 py-2 rounded hover:bg-[#6f462f] transition disabled:opacity-50"
+            onClick={handleOpenReviewClick}
+            className="font-headingTwo text-base text-white bg-[#835339] border border-[#835339] px-6 py-2 rounded hover:bg-[#6f462f] transition"
           >
-            {checkingReview ? 'Checking...' : 
-             existingReview ? 'Edit Review' : 
-             !canReview ? 'Cannot Review' : 'Write a review'}
+            Write a review
           </Button>
         </div>
 
@@ -235,6 +284,20 @@ const ProductReview = ({slug }) => {
                     {review.title}
                   </h4>
                   <p className="text-sm text-gray-700 ">{review.reviewText}</p>
+                  {/* Review images gallery */}
+                  {Array.isArray((review as any).images) && (review as any).images.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(review as any).images.map((img: any, idx: number) => (
+                        <img
+                          key={idx}
+                          src={resolveImageUrl(img.url)}
+                          alt={img.alt || `Review image ${idx + 1}`}
+                          className="w-full h-24 object-cover rounded"
+                          loading="lazy"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 </div>
             ))
@@ -246,26 +309,10 @@ const ProductReview = ({slug }) => {
       <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
         <DialogContent className="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full">
           <h3 className="text-xl font-headingOne font-semibold text-[#835339] mb-4">
-            {existingReview ? 'Edit Review' : 'Write a Review'}
+            Write a Review
           </h3>
           
-          {!canReview && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800">
-                {existingReview 
-                  ? 'You have already reviewed this product.' 
-                  : 'You need to purchase this product to write a review.'}
-              </p>
-            </div>
-          )}
-
-          {verified && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-800">
-                ✓ Verified purchase!
-              </p>
-            </div>
-          )}
+          {/* Simplified: no existing-review or verified banners */}
 
           <form onSubmit={handleSubmitReview} className="space-y-4">
             <div>
@@ -335,6 +382,38 @@ const ProductReview = ({slug }) => {
                 required
               />
             </div>
+
+            {/* Image upload */}
+            <div>
+              <Label htmlFor="review_images" className="block text-sm font-medium text-gray-700">
+                Add photos (optional)
+              </Label>
+              <input
+                id="review_images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="mt-2 block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#835339] file:text-white hover:file:bg-[#6f462f]"
+              />
+              {images.length > 0 && (
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={img.url} alt={img.alt || `Review image ${idx+1}`} className="w-20 h-20 object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => removeImageAt(idx)}
+                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 text-xs opacity-90 hover:opacity-100"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <div className="flex justify-end pt-2 space-x-2">
               <Button
@@ -347,7 +426,7 @@ const ProductReview = ({slug }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={creatingReview || !canReview || reviewForm.rating === 0}
+                disabled={creatingReview || reviewForm.rating === 0}
                 className="font-headingTwo text-base text-white bg-[#835339] border border-[#835339] px-6 py-2 rounded hover:bg-[#6f462f] transition disabled:opacity-50"
               >
                 {creatingReview ? 'Submitting...' : 'Submit Review'}
@@ -356,8 +435,20 @@ const ProductReview = ({slug }) => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Auth Modal for login/signup */}
+      <AuthModal
+        open={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          // If user logged in during modal, reopen review form if it was intended
+          if (pendingReviewAfterAuth && isLoggedIn()) {
+            setShowReviewModal(true);
+          }
+          setPendingReviewAfterAuth(false);
+        }}
+      />
     </section>
   );
-};
-
+}
 export default ProductReview;

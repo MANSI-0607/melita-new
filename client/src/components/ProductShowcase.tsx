@@ -1,12 +1,28 @@
-import { useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { products } from "@/data/products"; // ✅ import centralized product data
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { products as staticProducts, getProductsLive, type Product } from "@/data/products"; // ✅ centralized data + live fetch
 import { Link } from "react-router-dom"; // better than <a href> for SPA navigation
 import AddToCartButton from '@/components/AddToCartButton';
 
 
 const ProductShowcase = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const [items, setItems] = useState<Product[]>(staticProducts);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const live = await getProductsLive();
+        if (mounted && Array.isArray(live) && live.length) {
+          setItems(live);
+        }
+      } catch {
+        // ignore and keep static fallback
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const scrollLeft = () => {
     if (sliderRef.current) {
@@ -42,7 +58,7 @@ const ProductShowcase = () => {
           ref={sliderRef}
           className="overflow-x-auto flex snap-x snap-mandatory gap-4 px-2 py-4 scroll-smooth scrollbar-custom"
         >
-          {products.map((product) => (
+          {items.map((product) => (
             <div key={product.id} className="flex-none w-[280px] snap-center">
               <div className="relative group w-[280px] overflow-hidden rounded-lg shadow-lg bg-[#f0e4d4] border border-gray-200">
                 <Link
@@ -62,6 +78,20 @@ const ProductShowcase = () => {
                       alt={`${product.name} hover`}
                       className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
                     />
+                  )}
+                  
+                  {/* Product Tags - Top Left */}
+                  {product.tags && product.tags.length > 0 && (
+                    <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                      {product.tags.slice(0, 2).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="bg-gradient-to-r from-[#835339] to-[#5c3925] text-white text-xs font-semibold px-2 py-1 rounded-sm shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   )}
                   {/* Hover Add to Bag (Desktop) */}
                   <div className="hidden sm:block absolute top-[90%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-500">
@@ -99,6 +129,23 @@ const ProductShowcase = () => {
                   <h3 className="text-lg font-headingTwo font-bold text-gray-900 line-clamp-2">
                     {product.name}
                   </h3>
+                  {/* Average Rating */}
+                  <div className="pt-1 flex flex-col items-center">
+                    <div className="flex items-center">
+                    
+                      <span className="ml-2 text-sm text-gray-700 mr-1 font-headingTwo">
+                        {product.rating?.toFixed ? product.rating.toFixed(1) : product.rating }
+                      </span>
+                      <div className="flex text-yellow-400">
+                    
+                    <Star
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      stroke="currentColor"/>
+                
+                </div>
+                    </div>
+                  </div>
                   <div className="pt-2 flex flex-col items-center">
                     <span className="text-lg line-through text-gray-400">
                       {product.originalPrice}

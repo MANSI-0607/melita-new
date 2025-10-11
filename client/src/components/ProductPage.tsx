@@ -182,6 +182,20 @@ const ProductPage = ({ slug }) => {
               </a>
             </div>
 
+            {/* Tags below ratings */}
+            {product.tags && product.tags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {product.tags.map((tag: string, idx: number) => (
+                  <span
+                    key={idx}
+                    className="bg-gradient-to-r from-[#835339] to-[#5c3925] text-white text-xs font-semibold px-2 py-1 rounded-sm shadow-sm"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="mb-3">
               <span className="text-[#835339] text-2xl font-headingTwo font-bold mb-2">
                 {product.price}
@@ -337,20 +351,23 @@ const ProductPage = ({ slug }) => {
               <section className="max-w-7xl mx-auto px-4 pt-6 md:py-6">
                 <h2 className="text-2xl font-semibold text-[#1e4323] mb-8">Benefits</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12">
-                  {product.benefits.map((benefit, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      {product.benefitimg && product.benefitimg[index] ? (
-                        <img
-                          src={product.benefitimg[index]}
-                          alt={benefit}
-                          className="h-8 w-8 flex-shrink-0"
-                        />
-                      ) : (
-                        <Star className="h-8 w-8 flex-shrink-0 text-[#835339]" />
-                      )}
-                      <span className="text-base font-medium text-gray-800">{benefit}</span>
-                    </div>
-                  ))}
+                {product.benefits?.map((benefit: any, index: number) => (
+  <div key={index} className="flex items-center space-x-2">
+    {benefit?.image ? (
+      <img
+        src={benefit.image}
+        alt={benefit.text}
+        className="h-8 w-8 flex-shrink-0"
+      />
+    ) : (
+      <Star className="h-8 w-8 flex-shrink-0 text-[#835339]" />
+    )}
+    <span className="text-base font-medium text-gray-800">
+      {benefit.text || benefit}
+    </span>
+  </div>
+))}
+
                 </div>
               </section>
             )}

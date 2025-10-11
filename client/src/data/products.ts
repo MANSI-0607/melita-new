@@ -68,10 +68,10 @@ export type Product = {
   hoverImage: string;
   gallery?: string[];
   description?: string;
-  benefits?: string[];
-  benefitimg?: string[];
+  benefits?: Array<string | { image?: string; text?: string }>;
   videos?: string[];
   relatedproduct?: string[];
+  tags?: string[];
 };
 
 export const products: Product[] = [
@@ -88,9 +88,8 @@ export const products: Product[] = [
     gallery: [cleanser1, cleanser2, cleanser3, cleanser4, cleanser5],
     description:
       'A gentle yet effective cleanser that removes impurities while maintaining the skin barrier.',
-   
-   // benefitimg: [benefit1, benefit2],
-   relatedproduct:['moisturizer','essence']
+    tags: ['New', 'Best Seller'],
+    relatedproduct:['moisturizer','essence']
   },
   {
     id: 2,
@@ -114,6 +113,7 @@ export const products: Product[] = [
       essencevid2,
      essencevid3,
     ],
+    tags: ['Hydrating', 'Popular'],
     relatedproduct:['cleanser','moisturizer']
   },
   {
@@ -128,6 +128,7 @@ export const products: Product[] = [
     hoverImage: moisturizer2,
     gallery: [moisturizer1, moisturizer2,moisturizer3,moisturizer4,moisturizer5,moisturizer6,moisturizer7],
     description: 'Provides intense moisturization while balancing oil production.',
+
     relatedproduct:['cleanser','essence'],
     videos: [
       moisturizervid1,
@@ -147,6 +148,7 @@ export const products: Product[] = [
     hoverImage: sunscreen2,
     gallery: [sunscreen1, sunscreen2,sunscreen3,sunscreen4,sunscreen5,sunscreen6],
     description: 'SPF 50+ PA++++ broad spectrum protection designed for Indian skin.',
+    tags: ['SPF 50+', 'UV Protection'],
     relatedproduct:['cleanser','moisturizer'],
     videos: [
       sunscreenvid1,
@@ -166,6 +168,7 @@ export const products: Product[] = [
     hoverImage: combo2,
     gallery: [combo1, combo2,combo3,combo4],
     description: 'Complete skincare routine to strengthen and protect your skin barrier.',
+    tags: ['Combo', 'Value Pack'],
   },
   {
     id: 6,
@@ -178,6 +181,7 @@ export const products: Product[] = [
     image: drySkin1,
     hoverImage: drySkin2,
     gallery: [drySkin1, drySkin2,drySkin3,drySkin4],
+
   },
   {
     id: 7,
@@ -190,6 +194,7 @@ export const products: Product[] = [
     image: oilySkin1,
     hoverImage: oilySkin2,
     gallery: [oilySkin1, oilySkin2,oilySkin3,oilySkin4],
+
   },
   {
     id: 8,
@@ -202,6 +207,7 @@ export const products: Product[] = [
     image: duo1,
     hoverImage: duo2,
     gallery: [duo1, duo2,duo3,duo4],
+
   },
 ];
 
@@ -219,6 +225,7 @@ type ServerProduct = {
   description?: string;
   ratings?: { average?: number; count?: number };
   benefits?: Array<string | { image?: string; text?: string }>;
+  tags?: string[];
 };
 
 const API_BASE =  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -233,22 +240,30 @@ function formatCurrency(val: number | string | undefined): string {
 function mergeSelectedFields(staticProduct: Product, server: ServerProduct): Product {
   const rating = server.ratings?.average ?? staticProduct.rating ?? 0;
   const reviews = server.ratings?.count ?? staticProduct.reviews ?? 0;
+
   const benefits = Array.isArray(server.benefits)
-    ? server.benefits
-        .map((b: any) => (typeof b === 'string' ? b : b?.text))
-        .filter(Boolean)
+    ? server.benefits.map((b: any) => {
+        if (typeof b === "string") return { text: b };
+        return {
+          // ✅ Use image path as-is, because it's in /public/images/benefits/
+          image: b?.image || undefined,
+          text: b?.text || "",
+        };
+      })
     : staticProduct.benefits;
 
   return {
     ...staticProduct,
     price: formatCurrency(server.price) || staticProduct.price,
     originalPrice: formatCurrency(server.originalPrice) || staticProduct.originalPrice,
-    rating: typeof rating === 'number' ? rating : staticProduct.rating,
-    reviews: typeof reviews === 'number' ? reviews : staticProduct.reviews,
+    rating: typeof rating === "number" ? rating : staticProduct.rating,
+    reviews: typeof reviews === "number" ? reviews : staticProduct.reviews,
     description: server.description ?? staticProduct.description,
     benefits: benefits ?? staticProduct.benefits,
+    tags: server.tags ?? staticProduct.tags,
   };
 }
+
 
 export async function getProductBySlugLive(slug: string): Promise<Product | undefined> {
   const base = getProductBySlug(slug);

@@ -22,6 +22,7 @@ export default {
         playfair: ["Playfair Display", "serif"],
         roboto: ["Roboto", "sans-serif"],
         headingOne: ["Poppins", "sans-serif"],
+        headingTwo: ["Montserrat", "sans-serif"],
       },
       fontWeight: {
         bold: "700",

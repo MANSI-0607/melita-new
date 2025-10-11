@@ -3,6 +3,24 @@ import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Transaction from '../models/Transaction.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// __dirname replacement (ESM)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads directory exists
+const uploadsBaseDir = path.join(__dirname, '..', 'uploads');
+const reviewUploadsDir = path.join(uploadsBaseDir, 'reviews');
+try {
+  if (!fs.existsSync(uploadsBaseDir)) fs.mkdirSync(uploadsBaseDir);
+  if (!fs.existsSync(reviewUploadsDir)) fs.mkdirSync(reviewUploadsDir);
+} catch (e) {
+  // Log but don't crash server startup
+  console.error('Failed to ensure uploads directory:', e);
+}
 
 // Get product reviews
 export const getProductReviews = async (req, res) => {
@@ -67,7 +85,7 @@ export const getProductReviews = async (req, res) => {
 export const createReview = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { rating, title, reviewText, orderId } = req.body;
+    const { rating, title, reviewText, images } = req.body;
     const userId = req.user._id;
 
     // Check if product exists
@@ -77,23 +95,6 @@ export const createReview = async (req, res) => {
         success: false,
         message: 'Product not found'
       });
-    }
-
-    // Check if user has purchased this product (optional verification)
-    if (orderId) {
-      const order = await Order.findOne({
-        _id: orderId,
-        user: userId,
-        status: 'delivered',
-        'items.product': productId
-      });
-
-      if (!order) {
-        return res.status(400).json({
-          success: false,
-          message: 'You can only review products you have purchased'
-        });
-      }
     }
 
     // Check if user already reviewed this product
@@ -109,15 +110,48 @@ export const createReview = async (req, res) => {
       });
     }
 
-    // Create review
+    // Process images if provided
+    const reviewImages = [];
+    if (images && Array.isArray(images)) {
+      for (let index = 0; index < images.length; index++) {
+        const img = images[index];
+        const src = img?.url || '';
+        if (!src) continue;
+
+        // If client sent a data URL, decode and store locally
+        const dataUrlMatch = src.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        if (dataUrlMatch) {
+          const mime = dataUrlMatch[1];
+          const b64 = dataUrlMatch[2];
+          const ext = mime.split('/')[1].toLowerCase().replace('jpeg', 'jpg');
+          const safeExt = ext.match(/^[a-z0-9.+-]+$/) ? ext : 'png';
+          const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+          const filePath = path.join(reviewUploadsDir, filename);
+          try {
+            fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+            // Public URL served by Express static at /uploads
+            const publicUrl = `/uploads/reviews/${filename}`;
+            reviewImages.push({ url: publicUrl, alt: img.alt || `Review image ${index + 1}` });
+          } catch (e) {
+            console.error('Failed to save review image:', e);
+          }
+        } else {
+          // If already a normal URL or path, keep as-is
+          reviewImages.push({ url: src, alt: img.alt || `Review image ${index + 1}` });
+        }
+      }
+    }
+
+    // Create review (no purchase requirement)
     const review = new Review({
       product: productId,
       user: userId,
-      order: orderId,
       rating,
       title,
       reviewText,
-      verified: !!orderId, // Verified if from an order
+      images: reviewImages,
+      verified: false, // Will be set by admin approval
+      status: 'pending', // All reviews start as pending
       metadata: {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
@@ -140,7 +174,7 @@ export const createReview = async (req, res) => {
         // Create transaction record
         await Transaction.createEarning({
           userId,
-          orderId: orderId || null,
+          orderId: null,
           category: 'review',
           amount: 50,
           points: 50,
@@ -156,7 +190,7 @@ export const createReview = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Review submitted successfully. You earned 50 reward points!',
+      message: 'Review submitted successfully and is pending approval. You earned 50 reward points!',
       data: review
     });
 
@@ -368,19 +402,13 @@ export const canUserReview = async (req, res) => {
       });
     }
 
-    // Check if user has purchased this product
-    const order = await Order.findOne({
-      user: userId,
-      status: 'delivered',
-      'items.product': productId
-    });
-
+    // Any logged-in user can review (no purchase requirement)
     res.json({
       success: true,
       data: {
         canReview: true,
-        hasPurchased: !!order,
-        verified: !!order
+        hasPurchased: false, // Not relevant anymore
+        verified: false // Will be set by admin approval
       }
     });
 

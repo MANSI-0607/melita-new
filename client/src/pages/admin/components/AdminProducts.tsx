@@ -472,6 +472,8 @@ interface ProductFormProps {
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ formData, setFormData, onSubmit, isEditing }) => {
+  const [tagsInput, setTagsInput] = React.useState<string>('');
+
   const updateFormData = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value });
   };
@@ -489,8 +491,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ formData, setFormData, onSubm
   const csvToArray = (value: string) => value.split(',').map(s => s.trim()).filter(Boolean);
   const arrayToCsv = (arr?: string[]) => (arr && arr.length ? arr.join(', ') : '');
 
+  // Keep local tags input in sync with incoming formData.tags
+  React.useEffect(() => {
+    setTagsInput(arrayToCsv(formData.tags));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Array.isArray(formData.tags) ? formData.tags.join('|') : formData.tags]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    // Sync tags from local input before parent submit
+    if (typeof tagsInput === 'string') {
+      updateFormData('tags', csvToArray(tagsInput));
+    }
+    onSubmit(e);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="name">Product Name *</Label>
@@ -642,8 +658,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ formData, setFormData, onSubm
           <Label htmlFor="tags">Tags (comma-separated)</Label>
           <Input
             id="tags"
-            value={arrayToCsv(formData.tags)}
-            onChange={(e) => updateFormData('tags', csvToArray(e.target.value))}
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            onBlur={() => updateFormData('tags', csvToArray(tagsInput))}
+            placeholder="e.g., New, Best Seller, SPF 50+"
           />
         </div>
         <div>

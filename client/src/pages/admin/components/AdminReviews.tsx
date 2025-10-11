@@ -20,6 +20,7 @@ interface Review {
     _id: string;
     name: string;
     email: string;
+    phone: string;
   };
   userName?: string; // For admin-created reviews
   product: {
@@ -37,6 +38,7 @@ interface Review {
   createdAt: string;
   updatedAt: string;
   customDate?: string;
+  images?: { url: string; alt?: string }[];
 }
 
 interface Product {
@@ -52,6 +54,8 @@ const AdminReviews: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageDialogItems, setImageDialogItems] = useState<{ url: string; alt?: string }[]>([]);
   const [formData, setFormData] = useState({
     userName: '',
     productId: '',
@@ -62,6 +66,12 @@ const AdminReviews: React.FC = () => {
     isApproved: true,
     isVerified: false
   });
+
+  const resolveImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    return `${API_BASE}${url.startsWith('/') ? url : `/${url}`}`;
+  };
 
   useEffect(() => {
     fetchReviews();
@@ -228,14 +238,14 @@ const AdminReviews: React.FC = () => {
   };
 
   const filteredReviews = reviews.filter(review => {
-    const matchesSearch = (review.user?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (review.user?.name || review.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (review.product?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (review.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (review.comment || '').toLowerCase().includes(searchTerm.toLowerCase());
+                         (review.reviewText || review.comment || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     let matchesStatus = true;
-    if (statusFilter === 'approved') matchesStatus = review.isApproved;
-    else if (statusFilter === 'pending') matchesStatus = !review.isApproved;
+    if (statusFilter === 'approved') matchesStatus = review.status === 'approved';
+    else if (statusFilter === 'pending') matchesStatus = review.status === 'pending';
     else if (statusFilter === 'verified') matchesStatus = review.isVerified;
     
     return matchesSearch && matchesStatus;
@@ -419,6 +429,7 @@ const AdminReviews: React.FC = () => {
                 <TableHead>Review</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Images</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -435,7 +446,7 @@ const AdminReviews: React.FC = () => {
                       <div>
                         <div className="font-medium">{review.userName || review.user?.name || 'Unknown'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {review.user?.email || 'Admin Created'}
+                          {review.user?.phone || (review.user ? '—' : 'Admin Created')}
                         </div>
                       </div>
                     </div>
@@ -472,7 +483,7 @@ const AdminReviews: React.FC = () => {
                       </Badge>
                       {review.isVerified && (
                         <Badge variant="outline" className="text-xs">
-                          Verified Purchase
+                          Verified
                         </Badge>
                       )}
                     </div>
@@ -489,10 +500,26 @@ const AdminReviews: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
+                    {Array.isArray(review.images) && review.images.length > 0 ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setImageDialogItems(review.images || []);
+                          setImageDialogOpen(true);
+                        }}
+                      >
+                        View Images ({review.images.length})
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No images</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center space-x-2">
                       <div className="flex items-center space-x-2">
                         <Switch
-                          checked={review.isApproved}
+                          checked={review.status === 'approved'}
                           onCheckedChange={(checked) => handleToggleApproval(review._id, checked)}
                         />
                         <span className="text-xs">Approve</span>
@@ -512,6 +539,37 @@ const AdminReviews: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Images Dialog */}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attached Images</DialogTitle>
+          </DialogHeader>
+          {imageDialogItems.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {imageDialogItems.map((img, idx) => (
+                <a
+                  key={idx}
+                  href={resolveImageUrl(img.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <img
+                    src={resolveImageUrl(img.url)}
+                    alt={img.alt || `Review image ${idx + 1}`}
+                    className="w-full h-36 object-cover rounded"
+                    loading="lazy"
+                  />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No images attached.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
